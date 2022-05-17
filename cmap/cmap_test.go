@@ -15,21 +15,21 @@ type animal struct {
 	name string
 }
 
-func TestNewConcurrentMap(t *testing.T) {
-	m := NewConcurrentMap[string, int]()
+func TestNew(t *testing.T) {
+	cm := New[string, int]()
 
-	assert.NotNil(t, m)
-	assert.Equal(t, 0, m.Count(), "new map should be empty.")
-	assert.Equal(t, defaultShardCount, len(m))
+	assert.NotNil(t, cm)
+	assert.Equal(t, 0, cm.Count(), "new map should be empty.")
+	assert.Equal(t, defaultShardCount, len(cm))
 }
 
-func TestNewConcurrentMapWithConcurrencyLevel(t *testing.T) {
+func TestNewWithConcurrencyLevel(t *testing.T) {
 	concurrencyLevel := 64
-	m := NewConcurrentMapWithConcurrencyLevel[string, int](concurrencyLevel)
+	cm := NewWithConcurrencyLevel[string, int](concurrencyLevel)
 
-	assert.NotNil(t, m)
-	assert.Equal(t, 0, m.Count(), "new map should be empty.")
-	assert.Equal(t, concurrencyLevel, len(m))
+	assert.NotNil(t, cm)
+	assert.Equal(t, 0, cm.Count(), "new map should be empty.")
+	assert.Equal(t, concurrencyLevel, len(cm))
 }
 
 type dummyHasher struct{}
@@ -54,131 +54,131 @@ func TestGetShard(t *testing.T) {
 		{
 			desc: "key is string",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[string, int]()
+				cm := New[string, int]()
 
-				shard := m.getShard("test")
+				shard := cm.getShard("test")
 
-				assert.True(t, shard == m[9])
+				assert.True(t, shard == cm[9])
 			},
 		},
 		{
 			desc: "key is int",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[int, int]()
+				cm := New[int, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is int8",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[int8, int]()
+				cm := New[int8, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is int16",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[int16, int]()
+				cm := New[int16, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is int32",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[int32, int]()
+				cm := New[int32, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is int64",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[int64, int]()
+				cm := New[int64, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is uint",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[uint, int]()
+				cm := New[uint, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is uint8",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[uint8, int]()
+				cm := New[uint8, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is uint16",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[uint16, int]()
+				cm := New[uint16, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is uint32",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[uint32, int]()
+				cm := New[uint32, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key is uint64",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[uint64, int]()
+				cm := New[uint64, int]()
 
-				shard := m.getShard(1)
+				shard := cm.getShard(1)
 
-				assert.True(t, shard == m[14])
+				assert.True(t, shard == cm[14])
 			},
 		},
 		{
 			desc: "key implements hasher",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[dummyHasher, int]()
+				cm := New[dummyHasher, int]()
 
-				shard := m.getShard(dummyHasher{})
+				shard := cm.getShard(dummyHasher{})
 
-				assert.True(t, shard == m[dummyHash])
+				assert.True(t, shard == cm[dummyHash])
 			},
 		},
 		{
 			desc: "hasher panics",
 			test: func(t *testing.T) {
-				m := NewConcurrentMap[panicHasher, int]()
+				cm := New[panicHasher, int]()
 
-				shard := m.getShard(panicHasher{})
+				shard := cm.getShard(panicHasher{})
 
-				assert.True(t, shard == m[0])
+				assert.True(t, shard == cm[0])
 			},
 		},
 		{
@@ -192,11 +192,11 @@ func TestGetShard(t *testing.T) {
 					return 1, nil
 				}
 
-				m := NewConcurrentMap[struct{}, int]()
+				cm := New[struct{}, int]()
 
-				shard := m.getShard(struct{}{})
+				shard := cm.getShard(struct{}{})
 
-				assert.True(t, shard == m[1])
+				assert.True(t, shard == cm[1])
 			},
 		},
 		{
@@ -210,11 +210,11 @@ func TestGetShard(t *testing.T) {
 					panic("hashFn")
 				}
 
-				m := NewConcurrentMap[struct{}, int]()
+				cm := New[struct{}, int]()
 
-				shard := m.getShard(struct{}{})
+				shard := cm.getShard(struct{}{})
 
-				assert.True(t, shard == m[0])
+				assert.True(t, shard == cm[0])
 			},
 		},
 		{
@@ -228,11 +228,11 @@ func TestGetShard(t *testing.T) {
 					return 1000, assert.AnError
 				}
 
-				m := NewConcurrentMap[struct{}, int]()
+				cm := New[struct{}, int]()
 
-				shard := m.getShard(struct{}{})
+				shard := cm.getShard(struct{}{})
 
-				assert.True(t, shard == m[0])
+				assert.True(t, shard == cm[0])
 			},
 		},
 	}
@@ -247,72 +247,94 @@ func TestGetShard(t *testing.T) {
 	}
 }
 
-func TestSet(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+func TestSetAll(t *testing.T) {
+	cm := New[string, animal]()
+
 	elephant := animal{"elephant"}
 	monkey := animal{"monkey"}
 
-	prev, ok := m.Set("elephant", elephant)
+	data := make(map[string]animal)
+	data["elephant"] = elephant
+	data["monkey"] = monkey
+
+	cm.SetAll(data)
+
+	assert.Equal(t, 2, cm.Count(), "map should contain exactly two elements.")
+
+	// Retrieve inserted element.
+	actual, ok := cm.Get("elephant")
+	assert.True(t, ok, "ok should be true for item stored within the map.")
+	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
+	assert.Equal(t, "elephant", actual.name)
+
+	actual, ok = cm.Get("monkey")
+	assert.True(t, ok, "ok should be true for item stored within the map.")
+	assert.Equal(t, monkey, actual, "expecting an element, not zero-value.")
+	assert.Equal(t, "monkey", actual.name)
+}
+
+func TestSet(t *testing.T) {
+	cm := New[string, animal]()
+	elephant := animal{"elephant"}
+	monkey := animal{"monkey"}
+
+	prev, ok := cm.Set("elephant", elephant)
 	assert.Equal(t, animal{}, prev)
 	assert.False(t, ok)
 
-	prev, ok = m.Set("monkey", monkey)
+	prev, ok = cm.Set("monkey", monkey)
 	assert.Equal(t, animal{}, prev)
 	assert.False(t, ok)
 
-	assert.Equal(t, 2, m.Count(), "map should contain exactly two elements.")
+	assert.Equal(t, 2, cm.Count(), "map should contain exactly two elements.")
 }
 
 func TestGet(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 
 	// Get a missing element.
-	val, ok := m.Get("Dog")
+	val, ok := cm.Get("Dog")
 	assert.Equal(t, animal{}, val, "Missing values should return as zero-value.")
 	assert.False(t, ok, "ok should be false when item is missing from map.")
 
 	elephant := animal{"elephant"}
-	m.Set("elephant", elephant)
+	cm.Set("elephant", elephant)
 
 	// Retrieve inserted element.
-	actual, ok := m.Get("elephant")
+	actual, ok := cm.Get("elephant")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "elephant", actual.name)
 }
 
-func TestGetElseSet(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+func TestSetIfAbsent(t *testing.T) {
+	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
-	m.Set("elephant", elephant)
+	cm.Set("elephant", elephant)
 
-	actual, ok := m.GetElseSet("elephant", elephant)
-	assert.True(t, ok, "ok should be true for item stored within the map.")
-	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "elephant", actual.name)
+	absent := cm.SetIfAbsent("elephant", elephant)
+	assert.False(t, absent, "absent should be false for item stored within the map.")
 
 	cow := animal{"cow"}
-	actual, ok = m.GetElseSet("cow", cow)
-	assert.False(t, ok, "ok should be false for item newly inserted to the map.")
-	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", actual.name)
+	absent = cm.SetIfAbsent("cow", cow)
+	assert.True(t, absent, "absent should be true for item newly inserted to the map.")
 
-	actual, ok = m.Get("cow")
+	actual, ok := cm.Get("cow")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "cow", actual.name)
 }
 
 func TestGetAndSetIf(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
-	m.Set("elephant", elephant)
+	cm.Set("elephant", elephant)
 
 	// Retrieve inserted element.
 	cow := animal{"cow"}
-	oldVal, found, newVal, shouldSet := m.GetAndSetIf(
+	oldVal, found, newVal, shouldSet := cm.GetAndSetIf(
 		"elephant", func(currentVal animal, found bool) (animal, bool) {
 			return cow, true
 		},
@@ -326,24 +348,24 @@ func TestGetAndSetIf(t *testing.T) {
 	assert.Equal(t, "cow", newVal.name, "expected element to be different.")
 
 	// Re-retrieve inserted element.
-	newVal, found = m.Get("elephant")
+	newVal, found = cm.Get("elephant")
 	assert.True(t, found, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, newVal, "expecting an element, not zero-value.")
 	assert.Equal(t, "cow", newVal.name, "expected element to be different.")
 }
 
 func TestGetElseCreate(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
-	m.Set("elephant", elephant)
+	cm.Set("elephant", elephant)
 
 	elephantFactory := func() animal {
 		return elephant
 	}
 
 	// Retrieve inserted element.
-	actual, ok := m.GetElseCreate("elephant", elephantFactory)
+	actual, ok := cm.GetElseCreate("elephant", elephantFactory)
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "elephant", actual.name)
@@ -353,145 +375,233 @@ func TestGetElseCreate(t *testing.T) {
 		return cow
 	}
 
-	actual, ok = m.GetElseCreate("cow", cowFactory)
+	actual, ok = cm.GetElseCreate("cow", cowFactory)
 	assert.False(t, ok, "ok should be false for item newly inserted to the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "cow", actual.name)
 
-	actual, ok = m.Get("cow")
+	actual, ok = cm.Get("cow")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "cow", actual.name)
 }
 
 func TestCount(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
 	}
 
-	assert.Equal(t, 100, m.Count())
+	assert.Equal(t, 100, cm.Count())
 }
 
 func TestHas(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 
-	assert.False(t, m.Has("Money"), "element shouldn't exists")
+	assert.False(t, cm.Has("Money"), "element shouldn't exists")
 
 	elephant := animal{"elephant"}
-	m.Set("elephant", elephant)
+	cm.Set("elephant", elephant)
 
-	assert.True(t, m.Has("elephant"), "element exists, expecting Has to return True.")
+	assert.True(t, cm.Has("elephant"), "element exists, expecting Has to return True.")
 }
 
 func TestIsEmpty(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
-	assert.True(t, m.IsEmpty())
+	cm := New[string, animal]()
+	assert.True(t, cm.IsEmpty())
 
-	m.Set("elephant", animal{"elephant"})
-	assert.False(t, m.IsEmpty())
+	cm.Set("elephant", animal{"elephant"})
+	assert.False(t, cm.IsEmpty())
 }
 
 func TestRemove(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[string, animal]()
 
 	monkey := animal{"monkey"}
-	m.Set("monkey", monkey)
-	m.Remove("monkey")
+	cm.Set("monkey", monkey)
 
-	assert.Equal(t, 0, m.Count(), "Expecting count to be zero once item was removed.")
-
-	actual, ok := m.Get("monkey")
-	assert.False(t, ok)
+	actual, found := cm.Remove("noone")
+	assert.False(t, found)
 	assert.Equal(t, animal{}, actual)
 
-	// Remove a none existing element.
-	m.Remove("noone")
+	assert.Equal(t, 1, cm.Count())
+
+	actual, found = cm.Remove("monkey")
+	assert.True(t, found)
+	assert.Equal(t, monkey, actual)
+
+	assert.Equal(t, 0, cm.Count())
+
+	actual, ok := cm.Get("monkey")
+	assert.False(t, ok)
+	assert.Equal(t, animal{}, actual)
 }
 
-func TestRemoveIfValue(t *testing.T) {
-	// same value type
-	m := NewConcurrentMap[string, string]()
+func TestRemoveIf(t *testing.T) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.T)
+	}{
+		{
+			desc: "same value type",
+			test: func(t *testing.T) {
+				cm := New[string, string]()
 
-	name := "John"
-	monkey := "monkey"
-	m.Set(name, monkey)
+				name := "John"
+				monkey := "monkey"
+				cm.Set(name, monkey)
 
-	ok, err := m.RemoveIfValue(name, "tiger")
-	assert.False(t, ok)
-	assert.Nil(t, err)
+				actual, removed := cm.RemoveIf(
+					name, func(currentVal string, found bool) bool {
+						return false
+					},
+				)
 
-	actual, ok := m.Get(name)
-	assert.True(t, ok)
-	assert.Equal(t, monkey, actual)
+				assert.False(t, removed)
+				assert.Equal(t, "", actual)
 
-	ok, err = m.RemoveIfValue("Cat", monkey)
-	assert.False(t, ok)
-	assert.Nil(t, err)
+				actual, ok := cm.Get(name)
+				assert.True(t, ok)
+				assert.Equal(t, monkey, actual)
 
-	actual, ok = m.Get(name)
-	assert.True(t, ok)
-	assert.Equal(t, monkey, actual)
+				actual, removed = cm.RemoveIf(
+					"Cat", func(currentVal string, found bool) bool {
+						return true
+					},
+				)
 
-	ok, err = m.RemoveIfValue(name, monkey)
-	assert.True(t, ok)
-	assert.Nil(t, err)
+				assert.False(t, removed)
+				assert.Equal(t, "", actual)
 
-	actual, ok = m.Get(name)
-	assert.False(t, ok)
-	assert.Equal(t, actual, "")
+				actual, ok = cm.Get(name)
+				assert.True(t, ok)
+				assert.Equal(t, monkey, actual)
 
-	// different value types
-	m2 := NewConcurrentMap[string, chan int]()
+				actual, removed = cm.RemoveIf(
+					name, func(currentVal string, found bool) bool {
+						return true
+					},
+				)
 
-	circle := make(chan int)
-	m2.Set("dog", circle)
+				assert.True(t, removed)
+				assert.Equal(t, monkey, actual)
 
-	ok, err = m2.RemoveIfValue("cat", circle)
-	assert.False(t, ok)
-	assert.Nil(t, err)
+				actual, ok = cm.Get(name)
+				assert.False(t, ok)
+				assert.Equal(t, actual, "")
+			},
+		},
+		{
+			desc: "different value types",
+			test: func(t *testing.T) {
+				cm := New[string, chan int]()
 
-	actual2, ok := m2.Get("dog")
-	assert.True(t, ok)
-	assert.Equal(t, circle, actual2)
+				circle := make(chan int)
+				cm.Set("dog", circle)
 
-	ok, err = m2.RemoveIfValue("dog", make(chan int))
-	assert.False(t, ok)
-	assert.Nil(t, err)
+				actual, removed := cm.RemoveIf(
+					"cat", func(currentVal chan int, found bool) bool {
+						return true
+					},
+				)
 
-	actual2, ok = m2.Get("dog")
-	assert.True(t, ok)
-	assert.Equal(t, circle, actual2)
+				assert.False(t, removed)
+				assert.Nil(t, actual)
 
-	ok, err = m2.RemoveIfValue("dog", circle)
-	assert.True(t, ok)
-	assert.Nil(t, err)
+				actual, ok := cm.Get("dog")
+				assert.True(t, ok)
+				assert.Equal(t, circle, actual)
 
-	actual2, ok = m2.Get("dog")
-	assert.False(t, ok)
-	assert.Nil(t, actual2)
+				actual, removed = cm.RemoveIf(
+					"dog", func(currentVal chan int, found bool) bool {
+						return false
+					},
+				)
+
+				assert.False(t, removed)
+				assert.Nil(t, actual)
+
+				actual, ok = cm.Get("dog")
+				assert.True(t, ok)
+				assert.Equal(t, circle, actual)
+
+				actual, removed = cm.RemoveIf(
+					"dog", func(currentVal chan int, found bool) bool {
+						return true
+					},
+				)
+
+				assert.True(t, removed)
+				assert.Equal(t, circle, actual)
+
+				actual, ok = cm.Get("dog")
+				assert.False(t, ok)
+				assert.Nil(t, actual)
+			},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		sc := scenario
+		t.Run(
+			sc.desc, func(t *testing.T) {
+				sc.test(t)
+			},
+		)
+	}
+}
+
+func TestClear(t *testing.T) {
+	cm := New[string, animal]()
+	for i := 0; i < 100; i++ {
+		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+	}
+
+	assert.Equal(t, 100, cm.Count())
+
+	cm.Clear()
+
+	assert.Equal(t, 0, cm.Count())
 }
 
 func TestIter(t *testing.T) {
-	m := NewConcurrentMap[string, animal]()
+	cm := New[int, animal]()
 
-	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+		cm.Set(i, animal{strconv.Itoa(i)})
 	}
 
-	counter := 0
-	for _, item := range m.Iter() {
-		val := item.Val
-		assert.NotNil(t, val)
-		counter++
+	arr := [100]int{}
+	for item := range cm.Iter() {
+		arr[item.Key] = 1
 	}
 
-	assert.Equal(t, 100, counter)
+	// Verify we got back all keys
+	for _, val := range arr {
+		assert.Equal(t, 1, val)
+	}
+}
+
+func TestItems(t *testing.T) {
+	cm := New[int, animal]()
+
+	for i := 0; i < 100; i++ {
+		cm.Set(i, animal{strconv.Itoa(i)})
+	}
+
+	items := cm.Items()
+
+	assert.Equal(t, cm.Count(), len(items))
+
+	// Verify all k-v pairs in `cm` are in `items`
+	for item := range cm.Iter() {
+		_, ok := items[item.Key]
+		assert.True(t, ok)
+	}
 }
 
 func TestForEach(t *testing.T) {
-	m := NewConcurrentMap[string, int]()
+	cm := New[string, int]()
 
 	const iterations = 1000
 
@@ -500,7 +610,7 @@ func TestForEach(t *testing.T) {
 
 	go func() {
 		for i := 0; i < iterations/2; i++ {
-			m.Set(strconv.Itoa(i), i)
+			cm.Set(strconv.Itoa(i), i)
 		}
 
 		wg.Done()
@@ -508,7 +618,7 @@ func TestForEach(t *testing.T) {
 
 	go func() {
 		for i := iterations / 2; i < iterations; i++ {
-			m.Set(strconv.Itoa(i), i)
+			cm.Set(strconv.Itoa(i), i)
 		}
 
 		wg.Done()
@@ -517,11 +627,11 @@ func TestForEach(t *testing.T) {
 	wg.Wait()
 
 	// Verify all values have been inserted
-	assert.Equal(t, iterations, m.Count())
+	assert.Equal(t, iterations, cm.Count())
 
 	// Extract all inserted values into an array
 	var a [iterations]int
-	m.ForEach(
+	cm.ForEach(
 		func(key string, val int) {
 			a[val] = val
 		},
@@ -534,15 +644,15 @@ func TestForEach(t *testing.T) {
 }
 
 func TestForEach_Panic(t *testing.T) {
-	m := NewConcurrentMap[string, int]()
+	cm := New[string, int]()
 
 	const iterations = 1000
 	for i := 0; i < iterations; i++ {
-		m.Set(strconv.Itoa(i), i)
+		cm.Set(strconv.Itoa(i), i)
 	}
 
 	// Verify all values have been inserted
-	assert.Equal(t, iterations, m.Count())
+	assert.Equal(t, iterations, cm.Count())
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -554,7 +664,7 @@ func TestForEach_Panic(t *testing.T) {
 			}
 		}()
 
-		m.ForEach(
+		cm.ForEach(
 			func(key string, val int) {
 				panic(assert.AnError)
 			},
@@ -563,7 +673,7 @@ func TestForEach_Panic(t *testing.T) {
 
 	wg.Wait()
 
-	for _, shard := range m {
+	for _, shard := range cm {
 		ok := shard.TryLock()
 		assert.True(t, ok, "panics must not cause any shards to be locked indefinitely")
 		if ok {
@@ -578,17 +688,17 @@ func TestJsonMarshal(t *testing.T) {
 
 	expected := "{\"a\":1,\"b\":2}"
 
-	m := NewConcurrentMap[string, int]()
-	m.Set("a", 1)
-	m.Set("b", 2)
+	cm := New[string, int]()
+	cm.Set("a", 1)
+	cm.Set("b", 2)
 
-	j, err := json.Marshal(m)
+	j, err := json.Marshal(cm)
 	assert.Nil(t, err)
 	assert.Equal(t, string(j), expected)
 }
 
 func TestConcurrent(t *testing.T) {
-	m := NewConcurrentMap[string, int]()
+	cm := New[string, int]()
 
 	ch := make(chan int)
 	const iterations = 1000
@@ -599,9 +709,9 @@ func TestConcurrent(t *testing.T) {
 
 	go func() {
 		for i := 0; i < iterations/2; i++ {
-			m.Set(strconv.Itoa(i), i)
+			cm.Set(strconv.Itoa(i), i)
 
-			val, _ := m.Get(strconv.Itoa(i))
+			val, _ := cm.Get(strconv.Itoa(i))
 
 			ch <- val
 		}
@@ -611,9 +721,9 @@ func TestConcurrent(t *testing.T) {
 
 	go func() {
 		for i := iterations / 2; i < iterations; i++ {
-			m.Set(strconv.Itoa(i), i)
+			cm.Set(strconv.Itoa(i), i)
 
-			val, _ := m.Get(strconv.Itoa(i))
+			val, _ := cm.Get(strconv.Itoa(i))
 
 			ch <- val
 		}
@@ -632,7 +742,7 @@ func TestConcurrent(t *testing.T) {
 		counter++
 	}
 
-	assert.Equal(t, iterations, m.Count())
+	assert.Equal(t, iterations, cm.Count())
 	assert.Equal(t, iterations, counter)
 
 	// Sorts array to make it easier to verify all inserted values are there
