@@ -5,33 +5,6 @@ import (
 	"testing"
 )
 
-func BenchmarkItems(b *testing.B) {
-	m := New[string, animal]()
-
-	for i := 0; i < 10000; i++ {
-		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
-	}
-
-	for i := 0; i < b.N; i++ {
-		m.Items()
-	}
-}
-
-func BenchmarkMarshalJson(b *testing.B) {
-	m := New[string, animal]()
-
-	for i := 0; i < 10000; i++ {
-		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
-	}
-
-	for i := 0; i < b.N; i++ {
-		_, err := m.MarshalJSON()
-		if err != nil {
-			b.FailNow()
-		}
-	}
-}
-
 func BenchmarkGetShard(b *testing.B) {
 	m := New[string, string]()
 	b.ResetTimer()
@@ -191,6 +164,46 @@ func BenchmarkMultiGetSetBlock_32_Shard(b *testing.B) {
 }
 func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	benchmarkMultiGetSetBlock(b, 256)
+}
+
+func BenchmarkItems(b *testing.B) {
+	m := New[string, animal]()
+
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+	}
+
+	for i := 0; i < b.N; i++ {
+		m.Items()
+	}
+}
+
+func BenchmarkMarshalJSON(b *testing.B) {
+	m := New[string, animal]()
+
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+	}
+
+	for i := 0; i < b.N; i++ {
+		_, err := m.MarshalJSON()
+		if err != nil {
+			b.FailNow()
+		}
+	}
+}
+
+func BenchmarkUnmarshalJSON(b *testing.B) {
+	m := New[string, animal]()
+
+	jsonStr := []byte("{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}")
+
+	for i := 0; i < b.N; i++ {
+		err := m.UnmarshalJSON(jsonStr)
+		if err != nil {
+			b.FailNow()
+		}
+	}
 }
 
 func getSet[K comparable, V any](m ConcurrentMap[K, V], finished chan struct{}) (set func(key K, value V), get func(key K, value V)) {

@@ -390,7 +390,8 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[
 	return out
 }
 
-// Iter returns an iterator which could be used in a for range loop.
+// Iter returns an iterator which could be used in a for range loop. The capacity of the returned
+// channel is the same as the size of the map at the time Iter() is called.
 func (cm ConcurrentMap[K, V]) Iter() <-chan core.Tuple[K, V] {
 	return fanInBufferedChannels[K, V](cm.takeSnapshot())
 }
@@ -431,4 +432,18 @@ func (cm ConcurrentMap[K, V]) ForEach(doEachFn func(key K, val V)) {
 // MarshalJSON returns the JSON bytes of this map.
 func (cm ConcurrentMap[K, V]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(cm.Items())
+}
+
+// UnmarshalJSON consumes a slice of JSON bytes to populate this map.
+func (cm ConcurrentMap[K, V]) UnmarshalJSON(b []byte) error {
+	var tmp map[K]V
+
+	err := json.Unmarshal(b, &tmp)
+	if err != nil {
+		return err
+	}
+
+	cm.SetAll(tmp)
+
+	return nil
 }

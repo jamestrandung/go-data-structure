@@ -36,7 +36,8 @@ type Map[K comparable, V any] interface {
 	RemoveIf(key K, conditionFn func(currentVal V, found bool) bool) (V, bool)
 	// Clear removes all k-v pairs from this map.
 	Clear()
-	// Iter returns an iterator which could be used in a for range loop.
+	// Iter returns an iterator which could be used in a for range loop. The capacity of the returned
+	// channel is the same as the size of the map at the time Iter() is called.
 	Iter() <-chan Tuple[K, V]
 	// Items returns all k-v pairs as map[K]V.
 	Items() map[K]V
@@ -44,4 +45,6 @@ type Map[K comparable, V any] interface {
 	ForEach(doEachFn func(key K, val V))
 	// MarshalJSON returns the JSON bytes of this map.
 	MarshalJSON() ([]byte, error)
+	// UnmarshalJSON consumes a slice of JSON bytes to populate this map.
+	UnmarshalJSON(b []byte) error
 }

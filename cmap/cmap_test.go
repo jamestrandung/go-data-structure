@@ -12,7 +12,7 @@ import (
 )
 
 type animal struct {
-	name string
+	Name string
 }
 
 func TestNew(t *testing.T) {
@@ -265,12 +265,12 @@ func TestSetAll(t *testing.T) {
 	actual, ok := cm.Get("elephant")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "elephant", actual.name)
+	assert.Equal(t, "elephant", actual.Name)
 
 	actual, ok = cm.Get("monkey")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, monkey, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "monkey", actual.name)
+	assert.Equal(t, "monkey", actual.Name)
 }
 
 func TestSet(t *testing.T) {
@@ -304,7 +304,7 @@ func TestGet(t *testing.T) {
 	actual, ok := cm.Get("elephant")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "elephant", actual.name)
+	assert.Equal(t, "elephant", actual.Name)
 }
 
 func TestSetIfAbsent(t *testing.T) {
@@ -323,7 +323,7 @@ func TestSetIfAbsent(t *testing.T) {
 	actual, ok := cm.Get("cow")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", actual.name)
+	assert.Equal(t, "cow", actual.Name)
 }
 
 func TestGetAndSetIf(t *testing.T) {
@@ -342,16 +342,16 @@ func TestGetAndSetIf(t *testing.T) {
 
 	assert.True(t, found, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, oldVal, "expecting an element, not zero-value.")
-	assert.Equal(t, "elephant", oldVal.name)
+	assert.Equal(t, "elephant", oldVal.Name)
 	assert.True(t, shouldSet)
 	assert.Equal(t, cow, newVal, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", newVal.name, "expected element to be different.")
+	assert.Equal(t, "cow", newVal.Name, "expected element to be different.")
 
 	// Re-retrieve inserted element.
 	newVal, found = cm.Get("elephant")
 	assert.True(t, found, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, newVal, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", newVal.name, "expected element to be different.")
+	assert.Equal(t, "cow", newVal.Name, "expected element to be different.")
 }
 
 func TestGetElseCreate(t *testing.T) {
@@ -368,7 +368,7 @@ func TestGetElseCreate(t *testing.T) {
 	actual, ok := cm.GetElseCreate("elephant", elephantFactory)
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, elephant, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "elephant", actual.name)
+	assert.Equal(t, "elephant", actual.Name)
 
 	cow := animal{"cow"}
 	cowFactory := func() animal {
@@ -378,12 +378,12 @@ func TestGetElseCreate(t *testing.T) {
 	actual, ok = cm.GetElseCreate("cow", cowFactory)
 	assert.False(t, ok, "ok should be false for item newly inserted to the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", actual.name)
+	assert.Equal(t, "cow", actual.Name)
 
 	actual, ok = cm.Get("cow")
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, cow, actual, "expecting an element, not zero-value.")
-	assert.Equal(t, "cow", actual.name)
+	assert.Equal(t, "cow", actual.Name)
 }
 
 func TestCount(t *testing.T) {
@@ -682,19 +682,31 @@ func TestForEach_Panic(t *testing.T) {
 	}
 }
 
-func TestJsonMarshal(t *testing.T) {
+func TestMarshalJSON(t *testing.T) {
 	defer func() { defaultShardCount = 32 }()
 	defaultShardCount = 2
 
-	expected := "{\"a\":1,\"b\":2}"
+	cm := New[string, animal]()
+	cm.Set("a", animal{"elephant"})
+	cm.Set("b", animal{"cow"})
 
-	cm := New[string, int]()
-	cm.Set("a", 1)
-	cm.Set("b", 2)
+	expected := "{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}"
 
 	j, err := json.Marshal(cm)
+
 	assert.Nil(t, err)
 	assert.Equal(t, string(j), expected)
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	jsonStr := []byte("{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}")
+
+	cm := New[string, animal]()
+
+	err := cm.UnmarshalJSON(jsonStr)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, cm.Count())
 }
 
 func TestConcurrent(t *testing.T) {
