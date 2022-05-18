@@ -3,9 +3,9 @@ package cmap
 import (
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"sync"
 
+	"github.com/jamestrandung/go-data-structure/core"
 	"github.com/mitchellh/hashstructure/v2"
 )
 
@@ -31,14 +31,17 @@ type Hasher interface {
 }
 
 // HashString converts the given string into a hash value.
-func HashString(s string) uint64 {
-	hash := fnv.New64()
+func HashString(s string) uint32 {
+	hash := uint32(2166136261)
+	const prime32 = uint32(16777619)
 
-	// Ignore returned error because fnv.New64() implements io.Writer interface
-	// but does not return any errors in the actual implementation.
-	_, _ = hash.Write([]byte(s))
+	keyLength := len(s)
+	for i := 0; i < keyLength; i++ {
+		hash *= prime32
+		hash ^= uint32(s[i])
+	}
 
-	return hash.Sum64()
+	return hash
 }
 
 type BasicKeyType interface {
@@ -46,7 +49,7 @@ type BasicKeyType interface {
 }
 
 // ConcurrentMap is a thread safe map for K -> V. To avoid lock bottlenecks this map is divided
-// into to several ConcurrentMapShard.
+// into to several concurrentMapShard.
 //
 // To distribute keys into the underlying shards, when K is one of the BasicKeyType, the library
 // will convert provided keys into string and then hash it using Go built-in fnv.New64(). On the
@@ -55,13 +58,13 @@ type BasicKeyType interface {
 // from hashstructure to understand how it works and how to customize its behaviors at runtime
 // (e.g. ignore some struct fields).
 //
-// Alternatively, clients can implement the Hasher interface to provide their own hashing algo.
+// Alternatively, clients can implement the Hasher core to provide their own hashing algo.
 // This is preferred for optimizing performance since clients can choose fields to hash based
 // on the actual type of keys without relying on heavy reflections inside hashstructure.Hash.
-type ConcurrentMap[K comparable, V any] []*ConcurrentMapShard[K, V]
+type ConcurrentMap[K comparable, V any] []*concurrentMapShard[K, V]
 
-// ConcurrentMapShard is 1 shard in a ConcurrentMap
-type ConcurrentMapShard[K comparable, V any] struct {
+// concurrentMapShard is 1 shard in a ConcurrentMap
+type concurrentMapShard[K comparable, V any] struct {
 	sync.RWMutex
 	items map[K]V
 }
@@ -73,9 +76,9 @@ func New[K comparable, V any]() ConcurrentMap[K, V] {
 
 // NewWithConcurrencyLevel returns a new instance of ConcurrentMap with the given amount of shards.
 func NewWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) ConcurrentMap[K, V] {
-	m := make([]*ConcurrentMapShard[K, V], concurrencyLevel)
+	m := make([]*concurrentMapShard[K, V], concurrencyLevel)
 	for i := 0; i < concurrencyLevel; i++ {
-		m[i] = &ConcurrentMapShard[K, V]{
+		m[i] = &concurrentMapShard[K, V]{
 			items: make(map[K]V),
 		}
 	}
@@ -83,20 +86,20 @@ func NewWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) Concurre
 	return m
 }
 
-func (cm ConcurrentMap[K, V]) getShard(key K) *ConcurrentMapShard[K, V] {
+func (cm ConcurrentMap[K, V]) getShard(key K) *concurrentMapShard[K, V] {
 	tmp := any(key)
 
 	switch castedKey := tmp.(type) {
 	case string:
 		hash := HashString(castedKey)
-		return cm[hash%uint64(len(cm))]
+		return cm[hash%uint32(len(cm))]
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		hash := HashString(fmt.Sprintf("%v", castedKey))
-		return cm[hash%uint64(len(cm))]
+		return cm[hash%uint32(len(cm))]
 	default:
 	}
 
-	if h, ok := any(key).(Hasher); ok {
+	if h, ok := tmp.(Hasher); ok {
 		return cm[cm.hash(h)%uint64(len(cm))]
 	}
 
@@ -293,13 +296,13 @@ func (cm ConcurrentMap[K, V]) RemoveIf(key K, conditionFn func(currentVal V, fou
 	return tmp, false
 }
 
-// Clear removes all k-v pairs from each shard in parallel.
+// Clear removes all k-v pairs from this map.
 func (cm ConcurrentMap[K, V]) Clear() {
 	var wg sync.WaitGroup
 	wg.Add(len(cm))
 
 	for _, shard := range cm {
-		go func(s *ConcurrentMapShard[K, V]) {
+		go func(s *concurrentMapShard[K, V]) {
 			s.Lock()
 			defer wg.Done()
 			defer s.Unlock()
@@ -313,16 +316,10 @@ func (cm ConcurrentMap[K, V]) Clear() {
 	wg.Wait()
 }
 
-// Tuple represents a k-v pair in ConcurrentMap.
-type Tuple[K comparable, V any] struct {
-	Key K
-	Val V
-}
-
 // Returns an array of channels that contains all k-v pairs in each shard, which is likely
 // a snapshot of this map. It returns once the size of each buffered channel is determined,
 // before all the channels are populated using Go routines.
-func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
+func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 	// When this map is not initialized
 	if len(cm) == 0 {
 		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
@@ -333,17 +330,17 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
 	var wg sync.WaitGroup
 	wg.Add(shardCount)
 
-	result := make([]<-chan Tuple[K, V], shardCount)
+	result := make([]<-chan core.Tuple[K, V], shardCount)
 
 	for idx, shard := range cm {
-		go func(i int, s *ConcurrentMapShard[K, V]) {
+		go func(i int, s *concurrentMapShard[K, V]) {
 			s.RLock()
 			defer s.RUnlock()
 
 			// A buffered channel that is big enough to hold all k-v pairs in this
 			// shard will prevent this Go routine from being blocked indefinitely
 			// in case reader crashes
-			channel := make(chan Tuple[K, V], len(s.items))
+			channel := make(chan core.Tuple[K, V], len(s.items))
 			defer close(channel)
 
 			result[i] = channel
@@ -352,7 +349,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
 			wg.Done()
 
 			for key, val := range s.items {
-				channel <- Tuple[K, V]{key, val}
+				channel <- core.Tuple[K, V]{key, val}
 			}
 		}(idx, shard)
 	}
@@ -363,13 +360,13 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
 }
 
 // fanInBufferedChannels reads elements from channels `bufferedIns` into channel `out`.
-func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan Tuple[K, V]) <-chan Tuple[K, V] {
+func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[K, V]) <-chan core.Tuple[K, V] {
 	totalBufferSize := 0
 	for _, c := range bufferedIns {
 		totalBufferSize += cap(c)
 	}
 
-	out := make(chan Tuple[K, V], totalBufferSize)
+	out := make(chan core.Tuple[K, V], totalBufferSize)
 
 	go func() {
 		defer close(out)
@@ -378,7 +375,7 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan Tuple[K, V]
 		wg.Add(len(bufferedIns))
 
 		for _, c := range bufferedIns {
-			go func(channel <-chan Tuple[K, V]) {
+			go func(channel <-chan core.Tuple[K, V]) {
 				defer wg.Done()
 
 				for t := range channel {
@@ -394,7 +391,7 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan Tuple[K, V]
 }
 
 // Iter returns an iterator which could be used in a for range loop.
-func (cm ConcurrentMap[K, V]) Iter() <-chan Tuple[K, V] {
+func (cm ConcurrentMap[K, V]) Iter() <-chan core.Tuple[K, V] {
 	return fanInBufferedChannels[K, V](cm.takeSnapshot())
 }
 
