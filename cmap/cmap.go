@@ -232,7 +232,7 @@ func (cm ConcurrentMap[K, V]) GetElseCreate(key K, newValueFn func() V) (V, bool
 	return newValue, false
 }
 
-// Count returns the count of all items in this map.
+// Count returns size of this map.
 func (cm ConcurrentMap[K, V]) Count() int {
 	count := 0
 	for _, shard := range cm {
@@ -246,7 +246,12 @@ func (cm ConcurrentMap[K, V]) Count() int {
 	return count
 }
 
-// Has returns true if the given key is in this map, else false.
+// IsEmpty returns whether this map is empty
+func (cm ConcurrentMap[K, V]) IsEmpty() bool {
+	return cm.Count() == 0
+}
+
+// Has returns whether given key is in this map.
 func (cm ConcurrentMap[K, V]) Has(key K) bool {
 	shard := cm.getShard(key)
 	shard.RLock()
@@ -254,11 +259,6 @@ func (cm ConcurrentMap[K, V]) Has(key K) bool {
 
 	_, ok := shard.items[key]
 	return ok
-}
-
-// IsEmpty returns true if this map is empty, else false.
-func (cm ConcurrentMap[K, V]) IsEmpty() bool {
-	return cm.Count() == 0
 }
 
 // Remove pops a K-V pair from this map, then returns it.
@@ -281,13 +281,13 @@ func (cm ConcurrentMap[K, V]) Remove(key K) (V, bool) {
 //
 // Note: Condition func is called while lock is held. Hence, it must NOT access this map as it
 // may lead to deadlock since sync.RWLock is not reentrant.
-func (cm ConcurrentMap[K, V]) RemoveIf(key K, conditionFn func(currentVal V, found bool) bool) (V, bool) {
+func (cm ConcurrentMap[K, V]) RemoveIf(key K, conditionFn func(currentVal V) bool) (V, bool) {
 	shard := cm.getShard(key)
 	shard.Lock()
 	defer shard.Unlock()
 
 	val, ok := shard.items[key]
-	if ok && conditionFn(val, ok) {
+	if ok && conditionFn(val) {
 		delete(shard.items, key)
 		return val, true
 	}
@@ -316,8 +316,8 @@ func (cm ConcurrentMap[K, V]) Clear() {
 	wg.Wait()
 }
 
-// Returns an array of channels that contains all k-v pairs in each shard, which is likely
-// a snapshot of this map. It returns once the size of each buffered channel is determined,
+// takeSnapshot returns an array of channels that contains all k-v pairs in each shard, which is
+// likely a snapshot of this map. It returns once the size of each buffered channel is determined,
 // before all the channels are populated using Go routines.
 func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 	// When this map is not initialized
@@ -390,32 +390,37 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[
 	return out
 }
 
-// Iter returns an iterator which could be used in a for range loop. The capacity of the returned
+// Iter returns a channel which could be used in a for range loop. The capacity of the returned
 // channel is the same as the size of the map at the time Iter() is called.
 func (cm ConcurrentMap[K, V]) Iter() <-chan core.Tuple[K, V] {
 	return fanInBufferedChannels[K, V](cm.takeSnapshot())
 }
 
-// Items returns all k-v pairs as map[K]V.
-func (cm ConcurrentMap[K, V]) Items() map[K]V {
-	channel := cm.Iter()
+// Items returns all k-v pairs as a slice of core.Tuple.
+func (cm ConcurrentMap[K, V]) Items() []core.Tuple[K, V] {
+	var result []core.Tuple[K, V]
 
-	result := make(map[K]V, cap(channel))
+	for _, shard := range cm {
+		shard.RLock()
 
-	for item := range channel {
-		result[item.Key] = item.Val
+		for key, val := range shard.items {
+			result = append(result, core.Tuple[K, V]{key, val})
+		}
+
+		shard.RUnlock()
 	}
 
 	return result
 }
 
-// ForEach executes the given doEachFn on every k-v pair in this map shard by shard.
+// ForEach executes the given doEachFn on every element in this map. If `doEachFn` returns true,
+// stop execution immediately.
 //
-// Note: doEachFn is called while lock is held. Hence, it must NOT access this map as it
-// may lead to deadlock since sync.RWLock is not reentrant.
-func (cm ConcurrentMap[K, V]) ForEach(doEachFn func(key K, val V)) {
+// Note: doEachFn is called while lock is held. Hence, it must NOT access this map as it may
+// lead to deadlock since sync.RWLock is not reentrant.
+func (cm ConcurrentMap[K, V]) ForEach(doEachFn func(key K, val V) bool) {
 	for _, shard := range cm {
-		func() {
+		mustStop := func() bool {
 			// Execute in a func with defer so that if doEachFn panics,
 			// we will still unlock the shard properly
 			// https://stackoverflow.com/questions/54291236/how-to-wait-for-a-panicking-goroutine
@@ -423,15 +428,40 @@ func (cm ConcurrentMap[K, V]) ForEach(doEachFn func(key K, val V)) {
 			defer shard.RUnlock()
 
 			for key, val := range shard.items {
-				doEachFn(key, val)
+				if doEachFn(key, val) {
+					return true
+				}
 			}
+
+			return false
 		}()
+
+		if mustStop {
+			return
+		}
 	}
+}
+
+// AsMap returns all k-v pairs as map[K]V.
+func (cm ConcurrentMap[K, V]) AsMap() map[K]V {
+	result := make(map[K]V)
+
+	for _, shard := range cm {
+		shard.RLock()
+
+		for key, val := range shard.items {
+			result[key] = val
+		}
+
+		shard.RUnlock()
+	}
+
+	return result
 }
 
 // MarshalJSON returns the JSON bytes of this map.
 func (cm ConcurrentMap[K, V]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(cm.Items())
+	return json.Marshal(cm.AsMap())
 }
 
 // UnmarshalJSON consumes a slice of JSON bytes to populate this map.
@@ -446,4 +476,9 @@ func (cm ConcurrentMap[K, V]) UnmarshalJSON(b []byte) error {
 	cm.SetAll(tmp)
 
 	return nil
+}
+
+// String returns a string representation of the current state of this map.
+func (cm ConcurrentMap[K, V]) String() string {
+	return fmt.Sprintf("%v", cm.AsMap())
 }

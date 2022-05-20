@@ -7,12 +7,18 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/jamestrandung/go-data-structure/core"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/assert"
 )
 
 type animal struct {
 	Name string
+}
+
+func TestInterface(t *testing.T) {
+	var m core.Map[string, int] = New[string, int]()
+	m.Count()
 }
 
 func TestNew(t *testing.T) {
@@ -46,7 +52,7 @@ func (panicHasher) Hash() uint64 {
 	panic("panicHasher")
 }
 
-func TestGetShard(t *testing.T) {
+func TestConcurrentMap_GetShard(t *testing.T) {
 	scenarios := []struct {
 		desc string
 		test func(*testing.T)
@@ -247,7 +253,7 @@ func TestGetShard(t *testing.T) {
 	}
 }
 
-func TestSetAll(t *testing.T) {
+func TestConcurrentMap_SetAll(t *testing.T) {
 	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
@@ -273,7 +279,7 @@ func TestSetAll(t *testing.T) {
 	assert.Equal(t, "monkey", actual.Name)
 }
 
-func TestSet(t *testing.T) {
+func TestConcurrentMap_Set(t *testing.T) {
 	cm := New[string, animal]()
 	elephant := animal{"elephant"}
 	monkey := animal{"monkey"}
@@ -289,7 +295,7 @@ func TestSet(t *testing.T) {
 	assert.Equal(t, 2, cm.Count(), "map should contain exactly two elements.")
 }
 
-func TestGet(t *testing.T) {
+func TestConcurrentMap_Get(t *testing.T) {
 	cm := New[string, animal]()
 
 	// Get a missing element.
@@ -307,7 +313,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "elephant", actual.Name)
 }
 
-func TestSetIfAbsent(t *testing.T) {
+func TestConcurrentMap_SetIfAbsent(t *testing.T) {
 	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
@@ -326,7 +332,7 @@ func TestSetIfAbsent(t *testing.T) {
 	assert.Equal(t, "cow", actual.Name)
 }
 
-func TestGetAndSetIf(t *testing.T) {
+func TestConcurrentMap_GetAndSetIf(t *testing.T) {
 	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
@@ -354,7 +360,7 @@ func TestGetAndSetIf(t *testing.T) {
 	assert.Equal(t, "cow", newVal.Name, "expected element to be different.")
 }
 
-func TestGetElseCreate(t *testing.T) {
+func TestConcurrentMap_GetElseCreate(t *testing.T) {
 	cm := New[string, animal]()
 
 	elephant := animal{"elephant"}
@@ -386,7 +392,7 @@ func TestGetElseCreate(t *testing.T) {
 	assert.Equal(t, "cow", actual.Name)
 }
 
-func TestCount(t *testing.T) {
+func TestConcurrentMap_Count(t *testing.T) {
 	cm := New[string, animal]()
 	for i := 0; i < 100; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
@@ -395,7 +401,15 @@ func TestCount(t *testing.T) {
 	assert.Equal(t, 100, cm.Count())
 }
 
-func TestHas(t *testing.T) {
+func TestConcurrentMap_IsEmpty(t *testing.T) {
+	cm := New[string, animal]()
+	assert.True(t, cm.IsEmpty())
+
+	cm.Set("elephant", animal{"elephant"})
+	assert.False(t, cm.IsEmpty())
+}
+
+func TestConcurrentMap_Has(t *testing.T) {
 	cm := New[string, animal]()
 
 	assert.False(t, cm.Has("Money"), "element shouldn't exists")
@@ -406,15 +420,7 @@ func TestHas(t *testing.T) {
 	assert.True(t, cm.Has("elephant"), "element exists, expecting Has to return True.")
 }
 
-func TestIsEmpty(t *testing.T) {
-	cm := New[string, animal]()
-	assert.True(t, cm.IsEmpty())
-
-	cm.Set("elephant", animal{"elephant"})
-	assert.False(t, cm.IsEmpty())
-}
-
-func TestRemove(t *testing.T) {
+func TestConcurrentMap_Remove(t *testing.T) {
 	cm := New[string, animal]()
 
 	monkey := animal{"monkey"}
@@ -437,7 +443,7 @@ func TestRemove(t *testing.T) {
 	assert.Equal(t, animal{}, actual)
 }
 
-func TestRemoveIf(t *testing.T) {
+func TestConcurrentMap_RemoveIf(t *testing.T) {
 	scenarios := []struct {
 		desc string
 		test func(*testing.T)
@@ -452,7 +458,7 @@ func TestRemoveIf(t *testing.T) {
 				cm.Set(name, monkey)
 
 				actual, removed := cm.RemoveIf(
-					name, func(currentVal string, found bool) bool {
+					name, func(currentVal string) bool {
 						return false
 					},
 				)
@@ -465,7 +471,7 @@ func TestRemoveIf(t *testing.T) {
 				assert.Equal(t, monkey, actual)
 
 				actual, removed = cm.RemoveIf(
-					"Cat", func(currentVal string, found bool) bool {
+					"Cat", func(currentVal string) bool {
 						return true
 					},
 				)
@@ -478,7 +484,7 @@ func TestRemoveIf(t *testing.T) {
 				assert.Equal(t, monkey, actual)
 
 				actual, removed = cm.RemoveIf(
-					name, func(currentVal string, found bool) bool {
+					name, func(currentVal string) bool {
 						return true
 					},
 				)
@@ -500,7 +506,7 @@ func TestRemoveIf(t *testing.T) {
 				cm.Set("dog", circle)
 
 				actual, removed := cm.RemoveIf(
-					"cat", func(currentVal chan int, found bool) bool {
+					"cat", func(currentVal chan int) bool {
 						return true
 					},
 				)
@@ -513,7 +519,7 @@ func TestRemoveIf(t *testing.T) {
 				assert.Equal(t, circle, actual)
 
 				actual, removed = cm.RemoveIf(
-					"dog", func(currentVal chan int, found bool) bool {
+					"dog", func(currentVal chan int) bool {
 						return false
 					},
 				)
@@ -526,7 +532,7 @@ func TestRemoveIf(t *testing.T) {
 				assert.Equal(t, circle, actual)
 
 				actual, removed = cm.RemoveIf(
-					"dog", func(currentVal chan int, found bool) bool {
+					"dog", func(currentVal chan int) bool {
 						return true
 					},
 				)
@@ -551,7 +557,7 @@ func TestRemoveIf(t *testing.T) {
 	}
 }
 
-func TestClear(t *testing.T) {
+func TestConcurrentMap_Clear(t *testing.T) {
 	cm := New[string, animal]()
 	for i := 0; i < 100; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
@@ -564,7 +570,7 @@ func TestClear(t *testing.T) {
 	assert.Equal(t, 0, cm.Count())
 }
 
-func TestIter(t *testing.T) {
+func TestConcurrentMap_Iter(t *testing.T) {
 	cm := New[int, animal]()
 
 	for i := 0; i < 100; i++ {
@@ -582,25 +588,25 @@ func TestIter(t *testing.T) {
 	}
 }
 
-func TestItems(t *testing.T) {
+func TestConcurrentMap_Items(t *testing.T) {
 	cm := New[int, animal]()
 
 	for i := 0; i < 100; i++ {
 		cm.Set(i, animal{strconv.Itoa(i)})
 	}
 
-	items := cm.Items()
+	arr := [100]int{}
+	for _, item := range cm.Items() {
+		arr[item.Key] = 1
+	}
 
-	assert.Equal(t, cm.Count(), len(items))
-
-	// Verify all k-v pairs in `cm` are in `items`
-	for item := range cm.Iter() {
-		_, ok := items[item.Key]
-		assert.True(t, ok)
+	// Verify we got back all keys
+	for _, val := range arr {
+		assert.Equal(t, 1, val)
 	}
 }
 
-func TestForEach(t *testing.T) {
+func TestConcurrentMap_ForEach(t *testing.T) {
 	cm := New[string, int]()
 
 	const iterations = 1000
@@ -632,8 +638,9 @@ func TestForEach(t *testing.T) {
 	// Extract all inserted values into an array
 	var a [iterations]int
 	cm.ForEach(
-		func(key string, val int) {
+		func(key string, val int) bool {
 			a[val] = val
+			return false
 		},
 	)
 
@@ -643,7 +650,7 @@ func TestForEach(t *testing.T) {
 	}
 }
 
-func TestForEach_Panic(t *testing.T) {
+func TestConcurrentMap_ForEach_Panic(t *testing.T) {
 	cm := New[string, int]()
 
 	const iterations = 1000
@@ -665,7 +672,7 @@ func TestForEach_Panic(t *testing.T) {
 		}()
 
 		cm.ForEach(
-			func(key string, val int) {
+			func(key string, val int) bool {
 				panic(assert.AnError)
 			},
 		)
@@ -682,7 +689,25 @@ func TestForEach_Panic(t *testing.T) {
 	}
 }
 
-func TestMarshalJSON(t *testing.T) {
+func TestConcurrentMap_AsMap(t *testing.T) {
+	cm := New[int, animal]()
+
+	for i := 0; i < 100; i++ {
+		cm.Set(i, animal{strconv.Itoa(i)})
+	}
+
+	m := cm.AsMap()
+
+	assert.Equal(t, cm.Count(), len(m))
+
+	// Verify all k-v pairs in `cm` are in `items`
+	for item := range cm.Iter() {
+		_, ok := m[item.Key]
+		assert.True(t, ok)
+	}
+}
+
+func TestConcurrentMap_MarshalJSON(t *testing.T) {
 	defer func() { defaultShardCount = 32 }()
 	defaultShardCount = 2
 
@@ -695,10 +720,10 @@ func TestMarshalJSON(t *testing.T) {
 	j, err := json.Marshal(cm)
 
 	assert.Nil(t, err)
-	assert.Equal(t, string(j), expected)
+	assert.Equal(t, expected, string(j))
 }
 
-func TestUnmarshalJSON(t *testing.T) {
+func TestConcurrentMap_UnmarshalJSON(t *testing.T) {
 	jsonStr := []byte("{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}")
 
 	cm := New[string, animal]()
@@ -707,6 +732,19 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, cm.Count())
+}
+
+func TestConcurrentMap_String(t *testing.T) {
+	defer func() { defaultShardCount = 32 }()
+	defaultShardCount = 2
+
+	cm := New[string, animal]()
+	cm.Set("a", animal{"elephant"})
+	cm.Set("b", animal{"cow"})
+
+	expected := "map[a:{elephant} b:{cow}]"
+
+	assert.Equal(t, expected, cm.String())
 }
 
 func TestConcurrent(t *testing.T) {
