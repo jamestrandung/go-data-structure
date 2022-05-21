@@ -1,4 +1,4 @@
-package core
+package set
 
 // Set is an unordered set of T.
 type Set[T comparable] interface {

@@ -1,22 +1,19 @@
-# Hash Set
-
-Go does not have a built-in data type for Set. This package aims to fill in this gap by providing a `HashSet` 
-implementation that is backed by the basic `map` type.
+# Set
 
 ## Usage
 
 ```go
 import (
-    "github.com/jamestrandung/go-data-structure/hset"
+"github.com/jamestrandung/go-data-structure/set"
 )
 
 ```
 
 ```bash
-go get "github.com/jamestrandung/go-data-structure/hset"
+go get "github.com/jamestrandung/go-data-structure/set"
 ```
 
-## Implemented interface
+## Interface
 
 ```go
 // Set is an unordered set of T.
@@ -68,11 +65,14 @@ type Set[T comparable] interface {
 }
 ```
 
-## Example
+## Hash Set
+
+Go does not have a built-in data type for Set. This package aims to fill in this gap by providing a `HashSet`
+implementation that is backed by the basic `map` type.
 
 ```go
 // Create a new set
-hs := hset.New[string]()
+hs := set.NewHashSet[string]()
 
 // Add element to set
 hs.Add("foo")
@@ -85,3 +85,23 @@ hs.Remove("foo")
 ```
 
 For more examples, have a look at `hset_test.go`.
+
+## Concurrent Set
+
+This is a thread-safe alternative for `HashSet` that is backed by `emap.ConcurrentMap`.
+
+```go
+// Create a new set
+cs := set.NewConcurrentSet[string]()
+
+// Add element to set
+cs.Add("foo")
+
+// Check if the set contains "bar"
+found := cs.Has("bar")
+
+// Remove "foo" element
+cs.Remove("foo")
+```
+
+For more examples, have a look at `cset_test.go`.

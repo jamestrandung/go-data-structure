@@ -1,24 +1,13 @@
-package cmap
+package emap
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"testing"
 )
 
-func nrand(n int) []int {
-	i := make([]int, n)
-
-	for ind := range i {
-		i[ind] = rand.Int()
-	}
-
-	return i
-}
-
 func BenchmarkGetShard(b *testing.B) {
-	cm := New[string, string]()
+	cm := NewConcurrentMap[string, string]()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -36,7 +25,7 @@ func BenchmarkConcurrentMap_SetAll(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		cm := New[int, int]()
+		cm := NewConcurrentMap[int, int]()
 
 		b.StartTimer()
 		cm.SetAll(data)
@@ -44,7 +33,7 @@ func BenchmarkConcurrentMap_SetAll(b *testing.B) {
 }
 
 func BenchmarkSingleInsertAbsent(b *testing.B) {
-	cm := New[string, string]()
+	cm := NewConcurrentMap[string, string]()
 
 	b.ResetTimer()
 
@@ -54,7 +43,7 @@ func BenchmarkSingleInsertAbsent(b *testing.B) {
 }
 
 func BenchmarkSingleInsertPresent(b *testing.B) {
-	cm := New[string, string]()
+	cm := NewConcurrentMap[string, string]()
 	cm.Set("key", "value")
 
 	b.ResetTimer()
@@ -65,7 +54,7 @@ func BenchmarkSingleInsertPresent(b *testing.B) {
 }
 
 func benchmarkMultiInsertDifferent(b *testing.B, shardCount int) {
-	cm := NewWithConcurrencyLevel[string, string](shardCount)
+	cm := NewConcurrentMapWithConcurrencyLevel[string, string](shardCount)
 
 	finished := make(chan struct{}, b.N)
 	_, set := getSet(cm, finished)
@@ -95,7 +84,7 @@ func BenchmarkMultiInsertDifferent_256_Shard(b *testing.B) {
 }
 
 func BenchmarkMultiInsertSame(b *testing.B) {
-	cm := New[string, string]()
+	cm := NewConcurrentMap[string, string]()
 
 	finished := make(chan struct{}, b.N)
 	_, set := getSet(cm, finished)
@@ -113,7 +102,7 @@ func BenchmarkMultiInsertSame(b *testing.B) {
 }
 
 func BenchmarkMultiGetSame(b *testing.B) {
-	cm := New[string, string]()
+	cm := NewConcurrentMap[string, string]()
 
 	finished := make(chan struct{}, b.N)
 	get, _ := getSet(cm, finished)
@@ -131,7 +120,7 @@ func BenchmarkMultiGetSame(b *testing.B) {
 }
 
 func benchmarkMultiGetSetDifferent(b *testing.B, shardCount int) {
-	cm := NewWithConcurrencyLevel[string, string](shardCount)
+	cm := NewConcurrentMapWithConcurrencyLevel[string, string](shardCount)
 
 	finished := make(chan struct{}, 2*b.N)
 	get, set := getSet(cm, finished)
@@ -163,7 +152,7 @@ func BenchmarkMultiGetSetDifferent_256_Shard(b *testing.B) {
 }
 
 func benchmarkMultiGetSetBlock(b *testing.B, shardCount int) {
-	cm := NewWithConcurrencyLevel[string, string](shardCount)
+	cm := NewConcurrentMapWithConcurrencyLevel[string, string](shardCount)
 
 	finished := make(chan struct{}, 2*b.N)
 	get, set := getSet(cm, finished)
@@ -197,68 +186,112 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	benchmarkMultiGetSetBlock(b, 256)
 }
 
-func BenchmarkCreateItems(b *testing.B) {
-	cm := New[string, animal]()
+func BenchmarkConcurrentMap_Iter(b *testing.B) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.B)
+	}{
+		{
+			desc: "create",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
 
-	for i := 0; i < 1000; i++ {
-		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					cm.Iter()
+				}
+			},
+		},
+		{
+			desc: "loop",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
+
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					for item := range cm.Iter() {
+						fmt.Sprintf("%v", item.Val)
+					}
+				}
+			},
+		},
 	}
 
-	b.ResetTimer()
+	for _, scenario := range scenarios {
+		sc := scenario
 
-	for i := 0; i < b.N; i++ {
-		cm.Items()
-	}
-}
-
-func BenchmarkCreateIter(b *testing.B) {
-	cm := New[string, animal]()
-
-	for i := 0; i < 1000; i++ {
-		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		cm.Iter()
-	}
-}
-
-func BenchmarkLoopItems(b *testing.B) {
-	cm := New[string, animal]()
-
-	for i := 0; i < 1000; i++ {
-		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for _, value := range cm.Items() {
-			fmt.Sprintf("%v", value)
-		}
-	}
-}
-
-func BenchmarkLoopIter(b *testing.B) {
-	cm := New[string, animal]()
-
-	for i := 0; i < 1000; i++ {
-		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for item := range cm.Iter() {
-			fmt.Sprintf("%v", item.Val)
-		}
+		b.Run(
+			sc.desc, func(b *testing.B) {
+				sc.test(b)
+			},
+		)
 	}
 }
 
-func BenchmarkLoopForEach(b *testing.B) {
-	cm := New[string, animal]()
+func BenchmarkConcurrentMap_Items(b *testing.B) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.B)
+	}{
+		{
+			desc: "create",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
+
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					cm.Items()
+				}
+			},
+		},
+		{
+			desc: "loop",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
+
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					for _, value := range cm.Items() {
+						fmt.Sprintf("%v", value)
+					}
+				}
+			},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		sc := scenario
+
+		b.Run(
+			sc.desc, func(b *testing.B) {
+				sc.test(b)
+			},
+		)
+	}
+}
+
+func BenchmarkConcurrentMap_ForEach(b *testing.B) {
+	cm := NewConcurrentMap[string, animal]()
 
 	for i := 0; i < 1000; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
@@ -276,25 +309,61 @@ func BenchmarkLoopForEach(b *testing.B) {
 	}
 }
 
-func BenchmarkLoopAsMap(b *testing.B) {
-	cm := New[string, animal]()
+func BenchmarkConcurrentMap_AsMap(b *testing.B) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.B)
+	}{
+		{
+			desc: "create",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
 
-	for i := 0; i < 1000; i++ {
-		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					cm.AsMap()
+				}
+			},
+		},
+		{
+			desc: "loop",
+			test: func(b *testing.B) {
+				cm := NewConcurrentMap[string, animal]()
+
+				for i := 0; i < 1000; i++ {
+					cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
+				}
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					m := cm.AsMap()
+					for _, val := range m {
+						fmt.Sprintf("%v", val)
+					}
+				}
+			},
+		},
 	}
 
-	b.ResetTimer()
+	for _, scenario := range scenarios {
+		sc := scenario
 
-	for i := 0; i < b.N; i++ {
-		m := cm.AsMap()
-		for _, val := range m {
-			fmt.Sprintf("%v", val)
-		}
+		b.Run(
+			sc.desc, func(b *testing.B) {
+				sc.test(b)
+			},
+		)
 	}
 }
 
-func BenchmarkMarshalJSON(b *testing.B) {
-	cm := New[string, animal]()
+func BenchmarkConcurrentMap_MarshalJSON(b *testing.B) {
+	cm := NewConcurrentMap[string, animal]()
 
 	for i := 0; i < 1000; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
@@ -310,12 +379,12 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalJSON(b *testing.B) {
+func BenchmarkConcurrentMap_UnmarshalJSON(b *testing.B) {
 	jsonStr := []byte("{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}")
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		cm := New[string, animal]()
+		cm := NewConcurrentMap[string, animal]()
 
 		b.StartTimer()
 		err := cm.UnmarshalJSON(jsonStr)

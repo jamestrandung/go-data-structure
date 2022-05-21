@@ -1,16 +1,14 @@
-package hset
+package set
 
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/jamestrandung/go-data-structure/core"
 )
 
 type HashSet[T comparable] map[T]struct{}
 
-// New returns a new instance of HashSet with the given elements.
-func New[T comparable](elements ...T) HashSet[T] {
+// NewHashSet returns a new instance of HashSet with the given elements.
+func NewHashSet[T comparable](elements ...T) HashSet[T] {
 	if len(elements) == 0 {
 		return make(map[T]struct{})
 	}
@@ -21,8 +19,8 @@ func New[T comparable](elements ...T) HashSet[T] {
 	return result
 }
 
-// NewWithInitialSize returns a new instance of HashSet with the given initial size.
-func NewWithInitialSize[T comparable](initialSize int) HashSet[T] {
+// NewHashSetWithInitialSize returns a new instance of HashSet with the given initial size.
+func NewHashSetWithInitialSize[T comparable](initialSize int) HashSet[T] {
 	return make(map[T]struct{}, initialSize)
 }
 
@@ -84,7 +82,7 @@ func (hs HashSet[T]) Clear() {
 }
 
 // Difference returns all elements of this set that are not in `other`.
-func (hs HashSet[T]) Difference(other core.Set[T]) []T {
+func (hs HashSet[T]) Difference(other Set[T]) []T {
 	var result []T
 
 	for element := range hs {
@@ -97,7 +95,7 @@ func (hs HashSet[T]) Difference(other core.Set[T]) []T {
 }
 
 // SymmetricDifference returns all elements that are in either this set or `other` but not in both.
-func (hs HashSet[T]) SymmetricDifference(other core.Set[T]) []T {
+func (hs HashSet[T]) SymmetricDifference(other Set[T]) []T {
 	var result []T
 
 	for element := range hs {
@@ -120,10 +118,13 @@ func (hs HashSet[T]) SymmetricDifference(other core.Set[T]) []T {
 }
 
 // Intersect returns all elements that exist in both sets.
-func (hs HashSet[T]) Intersect(other core.Set[T]) []T {
+func (hs HashSet[T]) Intersect(other Set[T]) []T {
 	var result []T
 
-	if hs.Count() < other.Count() {
+	// Optimization if `other` is a ConcurrentSet
+	_, otherIsConcurrentSet := other.(ConcurrentSet[T])
+
+	if !otherIsConcurrentSet && hs.Count() < other.Count() {
 		for element := range hs {
 			if other.Has(element) {
 				result = append(result, element)
@@ -147,20 +148,26 @@ func (hs HashSet[T]) Intersect(other core.Set[T]) []T {
 }
 
 // Union returns all elements that are in both sets.
-func (hs HashSet[T]) Union(other core.Set[T]) []T {
-	result := NewWithInitialSize[T](hs.Count() + other.Count())
+func (hs HashSet[T]) Union(other Set[T]) []T {
+	result := NewHashSetWithInitialSize[T](hs.Count() + other.Count())
 
 	for element := range hs {
 		result.Add(element)
 	}
 
-	result.AddAll(other.Items())
+	other.ForEach(
+		func(element T) bool {
+			result.Add(element)
+
+			return false
+		},
+	)
 
 	return result.Items()
 }
 
 // Equals returns whether this and `other` sets have the same size and contain the same elements.
-func (hs HashSet[T]) Equals(other core.Set[T]) bool {
+func (hs HashSet[T]) Equals(other Set[T]) bool {
 	if hs.Count() != other.Count() {
 		return false
 	}
@@ -169,7 +176,7 @@ func (hs HashSet[T]) Equals(other core.Set[T]) bool {
 }
 
 // IsProperSubset returns whether all elements in this set are in `other` but they are not equal.
-func (hs HashSet[T]) IsProperSubset(other core.Set[T]) bool {
+func (hs HashSet[T]) IsProperSubset(other Set[T]) bool {
 	if hs.Count() >= other.Count() {
 		return false
 	}
@@ -178,7 +185,7 @@ func (hs HashSet[T]) IsProperSubset(other core.Set[T]) bool {
 }
 
 // Contains returns whether all elements in `other` are in this set.
-func (hs HashSet[T]) Contains(other core.Set[T]) bool {
+func (hs HashSet[T]) Contains(other Set[T]) bool {
 	isSuperset := true
 	other.ForEach(
 		func(element T) bool {

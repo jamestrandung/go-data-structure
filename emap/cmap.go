@@ -1,11 +1,10 @@
-package cmap
+package emap
 
 import (
 	"encoding/json"
 	"fmt"
 	"sync"
 
-	"github.com/jamestrandung/go-data-structure/core"
 	"github.com/mitchellh/hashstructure/v2"
 )
 
@@ -69,13 +68,13 @@ type concurrentMapShard[K comparable, V any] struct {
 	items map[K]V
 }
 
-// New returns a new instance of ConcurrentMap.
-func New[K comparable, V any]() ConcurrentMap[K, V] {
-	return NewWithConcurrencyLevel[K, V](defaultShardCount)
+// NewConcurrentMap returns a new instance of ConcurrentMap.
+func NewConcurrentMap[K comparable, V any]() ConcurrentMap[K, V] {
+	return NewConcurrentMapWithConcurrencyLevel[K, V](defaultShardCount)
 }
 
-// NewWithConcurrencyLevel returns a new instance of ConcurrentMap with the given amount of shards.
-func NewWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) ConcurrentMap[K, V] {
+// NewConcurrentMapWithConcurrencyLevel returns a new instance of ConcurrentMap with the given amount of shards.
+func NewConcurrentMapWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) ConcurrentMap[K, V] {
 	m := make([]*concurrentMapShard[K, V], concurrencyLevel)
 	for i := 0; i < concurrencyLevel; i++ {
 		m[i] = &concurrentMapShard[K, V]{
@@ -319,10 +318,10 @@ func (cm ConcurrentMap[K, V]) Clear() {
 // takeSnapshot returns an array of channels that contains all k-v pairs in each shard, which is
 // likely a snapshot of this map. It returns once the size of each buffered channel is determined,
 // before all the channels are populated using Go routines.
-func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
+func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
 	// When this map is not initialized
 	if len(cm) == 0 {
-		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
+		panic(`emap.ConcurrentMap is not initialized. Should run NewConcurrentMap() before usage.`)
 	}
 
 	shardCount := len(cm)
@@ -330,7 +329,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 	var wg sync.WaitGroup
 	wg.Add(shardCount)
 
-	result := make([]<-chan core.Tuple[K, V], shardCount)
+	result := make([]<-chan Tuple[K, V], shardCount)
 
 	for idx, shard := range cm {
 		go func(i int, s *concurrentMapShard[K, V]) {
@@ -340,7 +339,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 			// A buffered channel that is big enough to hold all k-v pairs in this
 			// shard will prevent this Go routine from being blocked indefinitely
 			// in case reader crashes
-			channel := make(chan core.Tuple[K, V], len(s.items))
+			channel := make(chan Tuple[K, V], len(s.items))
 			defer close(channel)
 
 			result[i] = channel
@@ -349,7 +348,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 			wg.Done()
 
 			for key, val := range s.items {
-				channel <- core.Tuple[K, V]{key, val}
+				channel <- Tuple[K, V]{key, val}
 			}
 		}(idx, shard)
 	}
@@ -360,13 +359,13 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan core.Tuple[K, V] {
 }
 
 // fanInBufferedChannels reads elements from channels `bufferedIns` into channel `out`.
-func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[K, V]) <-chan core.Tuple[K, V] {
+func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan Tuple[K, V]) <-chan Tuple[K, V] {
 	totalBufferSize := 0
 	for _, c := range bufferedIns {
 		totalBufferSize += cap(c)
 	}
 
-	out := make(chan core.Tuple[K, V], totalBufferSize)
+	out := make(chan Tuple[K, V], totalBufferSize)
 
 	go func() {
 		defer close(out)
@@ -375,7 +374,7 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[
 		wg.Add(len(bufferedIns))
 
 		for _, c := range bufferedIns {
-			go func(channel <-chan core.Tuple[K, V]) {
+			go func(channel <-chan Tuple[K, V]) {
 				defer wg.Done()
 
 				for t := range channel {
@@ -392,19 +391,19 @@ func fanInBufferedChannels[K comparable, V any](bufferedIns []<-chan core.Tuple[
 
 // Iter returns a channel which could be used in a for range loop. The capacity of the returned
 // channel is the same as the size of the map at the time Iter() is called.
-func (cm ConcurrentMap[K, V]) Iter() <-chan core.Tuple[K, V] {
+func (cm ConcurrentMap[K, V]) Iter() <-chan Tuple[K, V] {
 	return fanInBufferedChannels[K, V](cm.takeSnapshot())
 }
 
 // Items returns all k-v pairs as a slice of core.Tuple.
-func (cm ConcurrentMap[K, V]) Items() []core.Tuple[K, V] {
-	var result []core.Tuple[K, V]
+func (cm ConcurrentMap[K, V]) Items() []Tuple[K, V] {
+	var result []Tuple[K, V]
 
 	for _, shard := range cm {
 		shard.RLock()
 
 		for key, val := range shard.items {
-			result = append(result, core.Tuple[K, V]{key, val})
+			result = append(result, Tuple[K, V]{key, val})
 		}
 
 		shard.RUnlock()

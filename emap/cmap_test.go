@@ -1,4 +1,4 @@
-package cmap
+package emap
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jamestrandung/go-data-structure/core"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,22 +15,22 @@ type animal struct {
 	Name string
 }
 
-func TestInterface(t *testing.T) {
-	var m core.Map[string, int] = New[string, int]()
+func TestConcurrentMapMatchingInterface(t *testing.T) {
+	var m Map[string, int] = NewConcurrentMap[string, int]()
 	m.Count()
 }
 
-func TestNew(t *testing.T) {
-	cm := New[string, int]()
+func TestNewConcurrentMap(t *testing.T) {
+	cm := NewConcurrentMap[string, int]()
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 0, cm.Count(), "new map should be empty.")
 	assert.Equal(t, defaultShardCount, len(cm))
 }
 
-func TestNewWithConcurrencyLevel(t *testing.T) {
+func TestNewConcurrentMapWithConcurrencyLevel(t *testing.T) {
 	concurrencyLevel := 64
-	cm := NewWithConcurrencyLevel[string, int](concurrencyLevel)
+	cm := NewConcurrentMapWithConcurrencyLevel[string, int](concurrencyLevel)
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 0, cm.Count(), "new map should be empty.")
@@ -60,7 +59,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is string",
 			test: func(t *testing.T) {
-				cm := New[string, int]()
+				cm := NewConcurrentMap[string, int]()
 
 				shard := cm.getShard("test")
 
@@ -70,7 +69,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is int",
 			test: func(t *testing.T) {
-				cm := New[int, int]()
+				cm := NewConcurrentMap[int, int]()
 
 				shard := cm.getShard(1)
 
@@ -80,7 +79,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is int8",
 			test: func(t *testing.T) {
-				cm := New[int8, int]()
+				cm := NewConcurrentMap[int8, int]()
 
 				shard := cm.getShard(1)
 
@@ -90,7 +89,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is int16",
 			test: func(t *testing.T) {
-				cm := New[int16, int]()
+				cm := NewConcurrentMap[int16, int]()
 
 				shard := cm.getShard(1)
 
@@ -100,7 +99,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is int32",
 			test: func(t *testing.T) {
-				cm := New[int32, int]()
+				cm := NewConcurrentMap[int32, int]()
 
 				shard := cm.getShard(1)
 
@@ -110,7 +109,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is int64",
 			test: func(t *testing.T) {
-				cm := New[int64, int]()
+				cm := NewConcurrentMap[int64, int]()
 
 				shard := cm.getShard(1)
 
@@ -120,7 +119,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is uint",
 			test: func(t *testing.T) {
-				cm := New[uint, int]()
+				cm := NewConcurrentMap[uint, int]()
 
 				shard := cm.getShard(1)
 
@@ -130,7 +129,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is uint8",
 			test: func(t *testing.T) {
-				cm := New[uint8, int]()
+				cm := NewConcurrentMap[uint8, int]()
 
 				shard := cm.getShard(1)
 
@@ -140,7 +139,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is uint16",
 			test: func(t *testing.T) {
-				cm := New[uint16, int]()
+				cm := NewConcurrentMap[uint16, int]()
 
 				shard := cm.getShard(1)
 
@@ -150,7 +149,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is uint32",
 			test: func(t *testing.T) {
-				cm := New[uint32, int]()
+				cm := NewConcurrentMap[uint32, int]()
 
 				shard := cm.getShard(1)
 
@@ -160,7 +159,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key is uint64",
 			test: func(t *testing.T) {
-				cm := New[uint64, int]()
+				cm := NewConcurrentMap[uint64, int]()
 
 				shard := cm.getShard(1)
 
@@ -170,7 +169,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "key implements hasher",
 			test: func(t *testing.T) {
-				cm := New[dummyHasher, int]()
+				cm := NewConcurrentMap[dummyHasher, int]()
 
 				shard := cm.getShard(dummyHasher{})
 
@@ -180,7 +179,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 		{
 			desc: "hasher panics",
 			test: func(t *testing.T) {
-				cm := New[panicHasher, int]()
+				cm := NewConcurrentMap[panicHasher, int]()
 
 				shard := cm.getShard(panicHasher{})
 
@@ -198,7 +197,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 					return 1, nil
 				}
 
-				cm := New[struct{}, int]()
+				cm := NewConcurrentMap[struct{}, int]()
 
 				shard := cm.getShard(struct{}{})
 
@@ -216,7 +215,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 					panic("hashFn")
 				}
 
-				cm := New[struct{}, int]()
+				cm := NewConcurrentMap[struct{}, int]()
 
 				shard := cm.getShard(struct{}{})
 
@@ -234,7 +233,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 					return 1000, assert.AnError
 				}
 
-				cm := New[struct{}, int]()
+				cm := NewConcurrentMap[struct{}, int]()
 
 				shard := cm.getShard(struct{}{})
 
@@ -254,7 +253,7 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 }
 
 func TestConcurrentMap_SetAll(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	elephant := animal{"elephant"}
 	monkey := animal{"monkey"}
@@ -280,7 +279,7 @@ func TestConcurrentMap_SetAll(t *testing.T) {
 }
 
 func TestConcurrentMap_Set(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	elephant := animal{"elephant"}
 	monkey := animal{"monkey"}
 
@@ -296,7 +295,7 @@ func TestConcurrentMap_Set(t *testing.T) {
 }
 
 func TestConcurrentMap_Get(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	// Get a missing element.
 	val, ok := cm.Get("Dog")
@@ -314,7 +313,7 @@ func TestConcurrentMap_Get(t *testing.T) {
 }
 
 func TestConcurrentMap_SetIfAbsent(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	elephant := animal{"elephant"}
 	cm.Set("elephant", elephant)
@@ -333,7 +332,7 @@ func TestConcurrentMap_SetIfAbsent(t *testing.T) {
 }
 
 func TestConcurrentMap_GetAndSetIf(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	elephant := animal{"elephant"}
 	cm.Set("elephant", elephant)
@@ -361,7 +360,7 @@ func TestConcurrentMap_GetAndSetIf(t *testing.T) {
 }
 
 func TestConcurrentMap_GetElseCreate(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	elephant := animal{"elephant"}
 	cm.Set("elephant", elephant)
@@ -393,7 +392,7 @@ func TestConcurrentMap_GetElseCreate(t *testing.T) {
 }
 
 func TestConcurrentMap_Count(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	for i := 0; i < 100; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
 	}
@@ -402,7 +401,7 @@ func TestConcurrentMap_Count(t *testing.T) {
 }
 
 func TestConcurrentMap_IsEmpty(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	assert.True(t, cm.IsEmpty())
 
 	cm.Set("elephant", animal{"elephant"})
@@ -410,7 +409,7 @@ func TestConcurrentMap_IsEmpty(t *testing.T) {
 }
 
 func TestConcurrentMap_Has(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	assert.False(t, cm.Has("Money"), "element shouldn't exists")
 
@@ -421,7 +420,7 @@ func TestConcurrentMap_Has(t *testing.T) {
 }
 
 func TestConcurrentMap_Remove(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	monkey := animal{"monkey"}
 	cm.Set("monkey", monkey)
@@ -451,7 +450,7 @@ func TestConcurrentMap_RemoveIf(t *testing.T) {
 		{
 			desc: "same value type",
 			test: func(t *testing.T) {
-				cm := New[string, string]()
+				cm := NewConcurrentMap[string, string]()
 
 				name := "John"
 				monkey := "monkey"
@@ -500,7 +499,7 @@ func TestConcurrentMap_RemoveIf(t *testing.T) {
 		{
 			desc: "different value types",
 			test: func(t *testing.T) {
-				cm := New[string, chan int]()
+				cm := NewConcurrentMap[string, chan int]()
 
 				circle := make(chan int)
 				cm.Set("dog", circle)
@@ -558,7 +557,7 @@ func TestConcurrentMap_RemoveIf(t *testing.T) {
 }
 
 func TestConcurrentMap_Clear(t *testing.T) {
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	for i := 0; i < 100; i++ {
 		cm.Set(strconv.Itoa(i), animal{strconv.Itoa(i)})
 	}
@@ -571,7 +570,7 @@ func TestConcurrentMap_Clear(t *testing.T) {
 }
 
 func TestConcurrentMap_Iter(t *testing.T) {
-	cm := New[int, animal]()
+	cm := NewConcurrentMap[int, animal]()
 
 	for i := 0; i < 100; i++ {
 		cm.Set(i, animal{strconv.Itoa(i)})
@@ -589,7 +588,7 @@ func TestConcurrentMap_Iter(t *testing.T) {
 }
 
 func TestConcurrentMap_Items(t *testing.T) {
-	cm := New[int, animal]()
+	cm := NewConcurrentMap[int, animal]()
 
 	for i := 0; i < 100; i++ {
 		cm.Set(i, animal{strconv.Itoa(i)})
@@ -607,7 +606,7 @@ func TestConcurrentMap_Items(t *testing.T) {
 }
 
 func TestConcurrentMap_ForEach(t *testing.T) {
-	cm := New[string, int]()
+	cm := NewConcurrentMap[string, int]()
 
 	const iterations = 1000
 
@@ -651,7 +650,7 @@ func TestConcurrentMap_ForEach(t *testing.T) {
 }
 
 func TestConcurrentMap_ForEach_Panic(t *testing.T) {
-	cm := New[string, int]()
+	cm := NewConcurrentMap[string, int]()
 
 	const iterations = 1000
 	for i := 0; i < iterations; i++ {
@@ -690,7 +689,7 @@ func TestConcurrentMap_ForEach_Panic(t *testing.T) {
 }
 
 func TestConcurrentMap_AsMap(t *testing.T) {
-	cm := New[int, animal]()
+	cm := NewConcurrentMap[int, animal]()
 
 	for i := 0; i < 100; i++ {
 		cm.Set(i, animal{strconv.Itoa(i)})
@@ -711,7 +710,7 @@ func TestConcurrentMap_MarshalJSON(t *testing.T) {
 	defer func() { defaultShardCount = 32 }()
 	defaultShardCount = 2
 
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	cm.Set("a", animal{"elephant"})
 	cm.Set("b", animal{"cow"})
 
@@ -726,7 +725,7 @@ func TestConcurrentMap_MarshalJSON(t *testing.T) {
 func TestConcurrentMap_UnmarshalJSON(t *testing.T) {
 	jsonStr := []byte("{\"a\":{\"Name\":\"elephant\"},\"b\":{\"Name\":\"cow\"}}")
 
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 
 	err := cm.UnmarshalJSON(jsonStr)
 
@@ -738,7 +737,7 @@ func TestConcurrentMap_String(t *testing.T) {
 	defer func() { defaultShardCount = 32 }()
 	defaultShardCount = 2
 
-	cm := New[string, animal]()
+	cm := NewConcurrentMap[string, animal]()
 	cm.Set("a", animal{"elephant"})
 	cm.Set("b", animal{"cow"})
 
@@ -748,7 +747,7 @@ func TestConcurrentMap_String(t *testing.T) {
 }
 
 func TestConcurrent(t *testing.T) {
-	cm := New[string, int]()
+	cm := NewConcurrentMap[string, int]()
 
 	ch := make(chan int)
 	const iterations = 1000
