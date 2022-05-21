@@ -70,10 +70,18 @@ func (cs ConcurrentSet[T]) Remove(element T) bool {
 
 // Pop removes and returns an arbitrary element from this set.
 func (cs ConcurrentSet[T]) Pop() (v T, ok bool) {
-	// for element := range hs {
-	//     delete(hs, element)
-	//     return element, true
-	// }
+	for _, shard := range cs.cast() {
+		items, unlockFn := shard.GetItemsToWrite()
+
+		for element := range items {
+			delete(items, element)
+			unlockFn()
+
+			return element, true
+		}
+
+		unlockFn()
+	}
 
 	return
 }

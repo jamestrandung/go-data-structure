@@ -101,7 +101,7 @@ func BenchmarkConcurrentSet_Pop(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		_, ok := cs.set.Pop()
-		if ok {
+		if !ok {
 			b.StopTimer()
 			cs = newCSetInt(1000)
 			b.StartTimer()

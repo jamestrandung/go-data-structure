@@ -48,7 +48,7 @@ type BasicKeyType interface {
 }
 
 // ConcurrentMap is a thread safe map for K -> V. To avoid lock bottlenecks this map is divided
-// into to several concurrentMapShard.
+// into to several ConcurrentMapShard.
 //
 // To distribute keys into the underlying shards, when K is one of the BasicKeyType, the library
 // will convert provided keys into string and then hash it using Go built-in fnv.New64(). On the
@@ -60,12 +60,33 @@ type BasicKeyType interface {
 // Alternatively, clients can implement the Hasher core to provide their own hashing algo.
 // This is preferred for optimizing performance since clients can choose fields to hash based
 // on the actual type of keys without relying on heavy reflections inside hashstructure.Hash.
-type ConcurrentMap[K comparable, V any] []*concurrentMapShard[K, V]
+type ConcurrentMap[K comparable, V any] []*ConcurrentMapShard[K, V]
 
-// concurrentMapShard is 1 shard in a ConcurrentMap
-type concurrentMapShard[K comparable, V any] struct {
+// ConcurrentMapShard is 1 shard in a ConcurrentMap
+type ConcurrentMapShard[K comparable, V any] struct {
 	sync.RWMutex
 	items map[K]V
+}
+
+// UnlockFn unlocks a shard
+type UnlockFn func()
+
+// GetItemsToRead returns the items in this shard and an UnlockFn after getting RLock
+func (s *ConcurrentMapShard[K, V]) GetItemsToRead() (map[K]V, UnlockFn) {
+	s.RLock()
+
+	return s.items, func() {
+		s.RUnlock()
+	}
+}
+
+// GetItemsToWrite returns the items in this shard and an UnlockFn after getting Lock
+func (s *ConcurrentMapShard[K, V]) GetItemsToWrite() (map[K]V, UnlockFn) {
+	s.Lock()
+
+	return s.items, func() {
+		s.Unlock()
+	}
 }
 
 // NewConcurrentMap returns a new instance of ConcurrentMap.
@@ -75,9 +96,9 @@ func NewConcurrentMap[K comparable, V any]() ConcurrentMap[K, V] {
 
 // NewConcurrentMapWithConcurrencyLevel returns a new instance of ConcurrentMap with the given amount of shards.
 func NewConcurrentMapWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) ConcurrentMap[K, V] {
-	m := make([]*concurrentMapShard[K, V], concurrencyLevel)
+	m := make([]*ConcurrentMapShard[K, V], concurrencyLevel)
 	for i := 0; i < concurrencyLevel; i++ {
-		m[i] = &concurrentMapShard[K, V]{
+		m[i] = &ConcurrentMapShard[K, V]{
 			items: make(map[K]V),
 		}
 	}
@@ -85,7 +106,7 @@ func NewConcurrentMapWithConcurrencyLevel[K comparable, V any](concurrencyLevel 
 	return m
 }
 
-func (cm ConcurrentMap[K, V]) getShard(key K) *concurrentMapShard[K, V] {
+func (cm ConcurrentMap[K, V]) getShard(key K) *ConcurrentMapShard[K, V] {
 	tmp := any(key)
 
 	switch castedKey := tmp.(type) {
@@ -301,7 +322,7 @@ func (cm ConcurrentMap[K, V]) Clear() {
 	wg.Add(len(cm))
 
 	for _, shard := range cm {
-		go func(s *concurrentMapShard[K, V]) {
+		go func(s *ConcurrentMapShard[K, V]) {
 			s.Lock()
 			defer wg.Done()
 			defer s.Unlock()
@@ -332,7 +353,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan Tuple[K, V] {
 	result := make([]<-chan Tuple[K, V], shardCount)
 
 	for idx, shard := range cm {
-		go func(i int, s *concurrentMapShard[K, V]) {
+		go func(i int, s *ConcurrentMapShard[K, V]) {
 			s.RLock()
 			defer s.RUnlock()
 

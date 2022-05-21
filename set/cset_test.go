@@ -99,28 +99,28 @@ func TestConcurrentSet_Remove(t *testing.T) {
 	assert.False(t, cs.Has(1))
 }
 
-// func TestConcurrentSet_Pop(t *testing.T) {
-//     cs := NewConcurrentSet[int]()
-//
-//     actual, ok := cs.Pop()
-//     assert.Equal(t, actual, 0)
-//     assert.False(t, ok)
-//
-//     cs.Add(1)
-//
-//     actual, ok = cs.Pop()
-//     assert.Equal(t, actual, 1)
-//     assert.True(t, ok)
-//     assert.Equal(t, 0, cs.Count())
-//
-//     cs.Add(2)
-//     cs.Add(3)
-//
-//     actual, ok = cs.Pop()
-//     assert.True(t, actual == 2 || actual == 3)
-//     assert.True(t, ok)
-//     assert.Equal(t, 1, cs.Count())
-// }
+func TestConcurrentSet_Pop(t *testing.T) {
+	cs := NewConcurrentSet[int]()
+
+	actual, ok := cs.Pop()
+	assert.Equal(t, actual, 0)
+	assert.False(t, ok)
+
+	cs.Add(1)
+
+	actual, ok = cs.Pop()
+	assert.Equal(t, actual, 1)
+	assert.True(t, ok)
+	assert.Equal(t, 0, cs.Count())
+
+	cs.Add(2)
+	cs.Add(3)
+
+	actual, ok = cs.Pop()
+	assert.True(t, actual == 2 || actual == 3)
+	assert.True(t, ok)
+	assert.Equal(t, 1, cs.Count())
+}
 
 func TestConcurrentSet_Clear(t *testing.T) {
 	cs := NewConcurrentSet[int](1, 2, 3, 3, 2, 1)
