@@ -4,10 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+    "github.com/jamestrandung/go-data-structure/ds"
+    "github.com/stretchr/testify/assert"
 )
 
-func verifySetEquals[T comparable](t *testing.T, a, b Set[T]) {
+func verifySetEquals[T comparable](t *testing.T, a, b ds.Set[T]) {
 	assert.True(t, a.Equals(b), "%v != %v\n", a, b)
 }
 

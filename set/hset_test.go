@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+    "github.com/jamestrandung/go-data-structure/ds"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestHashSetMatchingInterface(t *testing.T) {
-	var s Set[int] = NewHashSet[int]()
+	var s ds.Set[int] = NewHashSet[int]()
 	s.Count()
 }
 

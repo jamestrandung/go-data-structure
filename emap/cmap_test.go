@@ -7,7 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mitchellh/hashstructure/v2"
+    "github.com/jamestrandung/go-data-structure/ds"
+    "github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,7 @@ type animal struct {
 }
 
 func TestConcurrentMapMatchingInterface(t *testing.T) {
-	var m Map[string, int] = NewConcurrentMap[string, int]()
+	var m ds.Map[string, int] = NewConcurrentMap[string, int]()
 	m.Count()
 }
 

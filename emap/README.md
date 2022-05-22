@@ -13,7 +13,7 @@ import (
 go get "github.com/jamestrandung/go-data-structure/emap"
 ```
 
-## Interface
+## Implemented interface
 
 ```go
 // Map is a map for K -> V.

@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+    "github.com/jamestrandung/go-data-structure/ds"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestConcurrentSetMatchingInterface(t *testing.T) {
-	var s Set[int] = NewConcurrentSet[int]()
+	var s ds.Set[int] = NewConcurrentSet[int]()
 	s.Count()
 }
 

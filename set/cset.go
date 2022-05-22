@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jamestrandung/go-data-structure/emap"
+    "github.com/jamestrandung/go-data-structure/ds"
+    "github.com/jamestrandung/go-data-structure/emap"
 )
 
 var (
@@ -92,7 +93,7 @@ func (cs ConcurrentSet[T]) Clear() {
 }
 
 // Difference returns all elements of this set that are not in `other`.
-func (cs ConcurrentSet[T]) Difference(other Set[T]) []T {
+func (cs ConcurrentSet[T]) Difference(other ds.Set[T]) []T {
 	var result []T
 
 	cs.ForEach(
@@ -109,7 +110,7 @@ func (cs ConcurrentSet[T]) Difference(other Set[T]) []T {
 }
 
 // SymmetricDifference returns all elements that are in either this set or `other` but not in both.
-func (cs ConcurrentSet[T]) SymmetricDifference(other Set[T]) []T {
+func (cs ConcurrentSet[T]) SymmetricDifference(other ds.Set[T]) []T {
 	var result []T
 
 	cs.ForEach(
@@ -136,7 +137,7 @@ func (cs ConcurrentSet[T]) SymmetricDifference(other Set[T]) []T {
 }
 
 // Intersect returns all elements that exist in both sets.
-func (cs ConcurrentSet[T]) Intersect(other Set[T]) []T {
+func (cs ConcurrentSet[T]) Intersect(other ds.Set[T]) []T {
 	var result []T
 
 	// Optimization if `other` is a HashSet
@@ -170,7 +171,7 @@ func (cs ConcurrentSet[T]) Intersect(other Set[T]) []T {
 }
 
 // Union returns all elements that are in both sets.
-func (cs ConcurrentSet[T]) Union(other Set[T]) []T {
+func (cs ConcurrentSet[T]) Union(other ds.Set[T]) []T {
 	result := NewHashSetWithInitialSize[T](cs.Count() + other.Count())
 
 	cs.ForEach(
@@ -193,7 +194,7 @@ func (cs ConcurrentSet[T]) Union(other Set[T]) []T {
 }
 
 // Equals returns whether this and `other` sets have the same size and contain the same elements.
-func (cs ConcurrentSet[T]) Equals(other Set[T]) bool {
+func (cs ConcurrentSet[T]) Equals(other ds.Set[T]) bool {
 	if cs.Count() != other.Count() {
 		return false
 	}
@@ -202,7 +203,7 @@ func (cs ConcurrentSet[T]) Equals(other Set[T]) bool {
 }
 
 // IsProperSubset returns whether all elements in this set are in `other` but they are not equal.
-func (cs ConcurrentSet[T]) IsProperSubset(other Set[T]) bool {
+func (cs ConcurrentSet[T]) IsProperSubset(other ds.Set[T]) bool {
 	if cs.Count() >= other.Count() {
 		return false
 	}
@@ -211,7 +212,7 @@ func (cs ConcurrentSet[T]) IsProperSubset(other Set[T]) bool {
 }
 
 // Contains returns whether all elements in `other` are in this set.
-func (cs ConcurrentSet[T]) Contains(other Set[T]) bool {
+func (cs ConcurrentSet[T]) Contains(other ds.Set[T]) bool {
 	isSuperset := true
 	other.ForEach(
 		func(element T) bool {

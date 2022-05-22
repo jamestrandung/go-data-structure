@@ -3,6 +3,8 @@ package set
 import (
 	"encoding/json"
 	"fmt"
+
+    "github.com/jamestrandung/go-data-structure/ds"
 )
 
 type HashSet[T comparable] map[T]struct{}
@@ -82,7 +84,7 @@ func (hs HashSet[T]) Clear() {
 }
 
 // Difference returns all elements of this set that are not in `other`.
-func (hs HashSet[T]) Difference(other Set[T]) []T {
+func (hs HashSet[T]) Difference(other ds.Set[T]) []T {
 	var result []T
 
 	for element := range hs {
@@ -95,7 +97,7 @@ func (hs HashSet[T]) Difference(other Set[T]) []T {
 }
 
 // SymmetricDifference returns all elements that are in either this set or `other` but not in both.
-func (hs HashSet[T]) SymmetricDifference(other Set[T]) []T {
+func (hs HashSet[T]) SymmetricDifference(other ds.Set[T]) []T {
 	var result []T
 
 	for element := range hs {
@@ -118,7 +120,7 @@ func (hs HashSet[T]) SymmetricDifference(other Set[T]) []T {
 }
 
 // Intersect returns all elements that exist in both sets.
-func (hs HashSet[T]) Intersect(other Set[T]) []T {
+func (hs HashSet[T]) Intersect(other ds.Set[T]) []T {
 	var result []T
 
 	// Optimization if `other` is a ConcurrentSet
@@ -148,7 +150,7 @@ func (hs HashSet[T]) Intersect(other Set[T]) []T {
 }
 
 // Union returns all elements that are in both sets.
-func (hs HashSet[T]) Union(other Set[T]) []T {
+func (hs HashSet[T]) Union(other ds.Set[T]) []T {
 	result := NewHashSetWithInitialSize[T](hs.Count() + other.Count())
 
 	for element := range hs {
@@ -167,7 +169,7 @@ func (hs HashSet[T]) Union(other Set[T]) []T {
 }
 
 // Equals returns whether this and `other` sets have the same size and contain the same elements.
-func (hs HashSet[T]) Equals(other Set[T]) bool {
+func (hs HashSet[T]) Equals(other ds.Set[T]) bool {
 	if hs.Count() != other.Count() {
 		return false
 	}
@@ -176,7 +178,7 @@ func (hs HashSet[T]) Equals(other Set[T]) bool {
 }
 
 // IsProperSubset returns whether all elements in this set are in `other` but they are not equal.
-func (hs HashSet[T]) IsProperSubset(other Set[T]) bool {
+func (hs HashSet[T]) IsProperSubset(other ds.Set[T]) bool {
 	if hs.Count() >= other.Count() {
 		return false
 	}
@@ -185,7 +187,7 @@ func (hs HashSet[T]) IsProperSubset(other Set[T]) bool {
 }
 
 // Contains returns whether all elements in `other` are in this set.
-func (hs HashSet[T]) Contains(other Set[T]) bool {
+func (hs HashSet[T]) Contains(other ds.Set[T]) bool {
 	isSuperset := true
 	other.ForEach(
 		func(element T) bool {

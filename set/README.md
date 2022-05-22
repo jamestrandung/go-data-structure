@@ -13,7 +13,7 @@ import (
 go get "github.com/jamestrandung/go-data-structure/set"
 ```
 
-## Interface
+## Implemented interface
 
 ```go
 // Set is an unordered set of T.

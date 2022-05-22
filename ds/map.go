@@ -1,4 +1,4 @@
-package emap
+package ds
 
 // Tuple represents a k-v pair.
 type Tuple[K comparable, V any] struct {
