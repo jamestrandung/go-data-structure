@@ -20,22 +20,6 @@ func newHSetInt(n int) testHSetInt {
 	}
 }
 
-func BenchmarkHashSet_AddAll(b *testing.B) {
-	nums := nrand(1000)
-
-	hs := NewHashSet[int]()
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		hs.AddAll(nums)
-
-		b.StopTimer()
-		hs.Clear()
-		b.StartTimer()
-	}
-}
-
 func BenchmarkHashSet_Add(b *testing.B) {
 	nums := nrand(1000)
 
@@ -47,6 +31,22 @@ func BenchmarkHashSet_Add(b *testing.B) {
 		for _, v := range nums {
 			hs.Add(v)
 		}
+
+		b.StopTimer()
+		hs.Clear()
+		b.StartTimer()
+	}
+}
+
+func BenchmarkHashSet_AddAll(b *testing.B) {
+	nums := nrand(1000)
+
+	hs := NewHashSet[int]()
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		hs.AddAll(nums)
 
 		b.StopTimer()
 		hs.Clear()
@@ -84,148 +84,16 @@ func BenchmarkHashSet_Has(b *testing.B) {
 	}
 }
 
-func BenchmarkHashSet_Remove(b *testing.B) {
-	hs := newHSetInt(b.N)
+func BenchmarkHashSet_Contains(b *testing.B) {
+	nums := nrand(1000)
 
-	b.ResetTimer()
-
-	for _, val := range hs.nums {
-		hs.set.Remove(val)
-	}
-}
-
-func BenchmarkHashSet_Pop(b *testing.B) {
-	hs := newHSetInt(1000)
+	this := NewHashSet[int](nums...)
+	that := NewHashSet[int](nums...)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, ok := hs.set.Pop()
-		if !ok {
-			b.StopTimer()
-			hs = newHSetInt(1000)
-			b.StartTimer()
-		}
-	}
-}
-
-func BenchmarkHashSet_Clear(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		hs := newHSetInt(1000)
-
-		b.StartTimer()
-		hs.set.Clear()
-	}
-}
-
-func BenchmarkHashSet_Difference(b *testing.B) {
-	this := newHSetInt(1000)
-	that := newHSetInt(1000)
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		this.set.Difference(that.set)
-	}
-}
-
-func BenchmarkHashSet_SymmetricDifference(b *testing.B) {
-	this := newHSetInt(1000)
-	that := newHSetInt(1000)
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		this.set.SymmetricDifference(that.set)
-	}
-}
-
-func BenchmarkHashSet_Intersect(b *testing.B) {
-	scenarios := []struct {
-		desc string
-		test func(*testing.B)
-	}{
-		{
-			desc: "that is HashSet",
-			test: func(b *testing.B) {
-				this := newHSetInt(1000)
-				that := newHSetInt(1000)
-
-				b.ResetTimer()
-
-				for i := 0; i < b.N; i++ {
-					this.set.Intersect(that.set)
-				}
-			},
-		},
-		{
-			desc: "that is ConcurrentSet",
-			test: func(b *testing.B) {
-				this := newHSetInt(1000)
-				that := newCSetInt(1000)
-
-				b.ResetTimer()
-
-				for i := 0; i < b.N; i++ {
-					this.set.Intersect(that.set)
-				}
-			},
-		},
-	}
-
-	for _, scenario := range scenarios {
-		sc := scenario
-
-		b.Run(
-			sc.desc, func(b *testing.B) {
-				sc.test(b)
-			},
-		)
-	}
-}
-
-func BenchmarkHashSet_Union(b *testing.B) {
-	scenarios := []struct {
-		desc string
-		test func(*testing.B)
-	}{
-		{
-			desc: "that is HashSet",
-			test: func(b *testing.B) {
-				this := newHSetInt(1000)
-				that := newHSetInt(1000)
-
-				b.ResetTimer()
-
-				for i := 0; i < b.N; i++ {
-					this.set.Union(that.set)
-				}
-			},
-		},
-		{
-			desc: "that is ConcurrentSet",
-			test: func(b *testing.B) {
-				this := newHSetInt(1000)
-				that := newCSetInt(1000)
-
-				b.ResetTimer()
-
-				for i := 0; i < b.N; i++ {
-					this.set.Union(that.set)
-				}
-			},
-		},
-	}
-
-	for _, scenario := range scenarios {
-		sc := scenario
-
-		b.Run(
-			sc.desc, func(b *testing.B) {
-				sc.test(b)
-			},
-		)
+		this.Contains(that)
 	}
 }
 
@@ -277,27 +145,64 @@ func BenchmarkHashSet_Equals(b *testing.B) {
 	}
 }
 
-func BenchmarkHashSet_IsProperSubset(b *testing.B) {
-	this := newHSetInt(1000)
-	that := newHSetInt(1001)
+func BenchmarkHashSet_Pop(b *testing.B) {
+	hs := newHSetInt(1000)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		this.set.IsProperSubset(that.set)
+		_, ok := hs.set.Pop()
+		if !ok {
+			b.StopTimer()
+			hs = newHSetInt(1000)
+			b.StartTimer()
+		}
 	}
 }
 
-func BenchmarkHashSet_Contains(b *testing.B) {
-	nums := nrand(1000)
-
-	this := NewHashSet[int](nums...)
-	that := NewHashSet[int](nums...)
+func BenchmarkHashSet_Remove(b *testing.B) {
+	hs := newHSetInt(b.N)
 
 	b.ResetTimer()
 
+	for _, val := range hs.nums {
+		hs.set.Remove(val)
+	}
+}
+
+func BenchmarkHashSet_RemoveAll(b *testing.B) {
+	nums := nrand(1000)
+
 	for i := 0; i < b.N; i++ {
-		this.Contains(that)
+		b.StopTimer()
+		hs := NewHashSet[int](nums...)
+
+		b.StartTimer()
+		hs.RemoveAll(nums)
+	}
+}
+
+func BenchmarkHashSet_RemoveIf(b *testing.B) {
+	hs := newHSetInt(b.N)
+
+	b.ResetTimer()
+
+	for _, val := range hs.nums {
+		hs.set.RemoveIf(
+			val, func() bool {
+				return true
+			},
+		)
+	}
+}
+
+func BenchmarkHashSet_Clear(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		hs := newHSetInt(1000)
+
+		b.StartTimer()
+		hs.set.Clear()
 	}
 }
 
@@ -459,5 +364,126 @@ func BenchmarkHashSet_String(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		hs.set.String()
+	}
+}
+
+func BenchmarkHashSet_Difference(b *testing.B) {
+	this := newHSetInt(1000)
+	that := newHSetInt(1000)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		this.set.Difference(that.set)
+	}
+}
+
+func BenchmarkHashSet_SymmetricDifference(b *testing.B) {
+	this := newHSetInt(1000)
+	that := newHSetInt(1000)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		this.set.SymmetricDifference(that.set)
+	}
+}
+
+func BenchmarkHashSet_Intersect(b *testing.B) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.B)
+	}{
+		{
+			desc: "that is HashSet",
+			test: func(b *testing.B) {
+				this := newHSetInt(1000)
+				that := newHSetInt(1000)
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					this.set.Intersect(that.set)
+				}
+			},
+		},
+		{
+			desc: "that is ConcurrentSet",
+			test: func(b *testing.B) {
+				this := newHSetInt(1000)
+				that := newCSetInt(1000)
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					this.set.Intersect(that.set)
+				}
+			},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		sc := scenario
+
+		b.Run(
+			sc.desc, func(b *testing.B) {
+				sc.test(b)
+			},
+		)
+	}
+}
+
+func BenchmarkHashSet_Union(b *testing.B) {
+	scenarios := []struct {
+		desc string
+		test func(*testing.B)
+	}{
+		{
+			desc: "that is HashSet",
+			test: func(b *testing.B) {
+				this := newHSetInt(1000)
+				that := newHSetInt(1000)
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					this.set.Union(that.set)
+				}
+			},
+		},
+		{
+			desc: "that is ConcurrentSet",
+			test: func(b *testing.B) {
+				this := newHSetInt(1000)
+				that := newCSetInt(1000)
+
+				b.ResetTimer()
+
+				for i := 0; i < b.N; i++ {
+					this.set.Union(that.set)
+				}
+			},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		sc := scenario
+
+		b.Run(
+			sc.desc, func(b *testing.B) {
+				sc.test(b)
+			},
+		)
+	}
+}
+
+func BenchmarkHashSet_IsProperSubset(b *testing.B) {
+	this := newHSetInt(1000)
+	that := newHSetInt(1001)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		this.set.IsProperSubset(that.set)
 	}
 }

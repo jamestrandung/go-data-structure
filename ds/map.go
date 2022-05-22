@@ -8,11 +8,11 @@ type Tuple[K comparable, V any] struct {
 
 // Map is a map for K -> V.
 type Map[K comparable, V any] interface {
-	// SetAll sets all k-v pairs from the given map in this map.
-	SetAll(data map[K]V)
 	// Set sets a new k-v pair in this map, then returns the previous value associated with
 	// key, and whether such value exists.
 	Set(key K, value V) (V, bool)
+	// SetAll sets all k-v pairs from the given map in this map.
+	SetAll(data map[K]V)
 	// Get gets a value based on the given key.
 	Get(key K) (V, bool)
 	// GetAndSetIf gets a value based on the given key and sets a new value based on some condition,
@@ -30,6 +30,9 @@ type Map[K comparable, V any] interface {
 	Has(key K) bool
 	// Remove pops a K-V pair from this map, then returns it.
 	Remove(key K) (V, bool)
+	// RemoveAll removes all given keys from this map, then returns whether this map changed as a
+	// result of the call.
+	RemoveAll(keys []K) bool
 	// RemoveIf removes the given key from this map based on some condition, then returns the value
 	// associated with the removed key and true. If the given key doesn't exist in this map or the
 	// key was not removed because of the condition func, a zero-value and false will be returned.

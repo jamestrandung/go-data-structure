@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-    "github.com/jamestrandung/go-data-structure/ds"
-    "github.com/mitchellh/hashstructure/v2"
+	"github.com/jamestrandung/go-data-structure/ds"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -253,6 +253,22 @@ func TestConcurrentMap_GetShard(t *testing.T) {
 	}
 }
 
+func TestConcurrentMap_Set(t *testing.T) {
+	cm := NewConcurrentMap[string, animal]()
+	elephant := animal{"elephant"}
+	monkey := animal{"monkey"}
+
+	prev, ok := cm.Set("elephant", elephant)
+	assert.Equal(t, animal{}, prev)
+	assert.False(t, ok)
+
+	prev, ok = cm.Set("monkey", monkey)
+	assert.Equal(t, animal{}, prev)
+	assert.False(t, ok)
+
+	assert.Equal(t, 2, cm.Count(), "map should contain exactly two elements.")
+}
+
 func TestConcurrentMap_SetAll(t *testing.T) {
 	cm := NewConcurrentMap[string, animal]()
 
@@ -277,22 +293,6 @@ func TestConcurrentMap_SetAll(t *testing.T) {
 	assert.True(t, ok, "ok should be true for item stored within the map.")
 	assert.Equal(t, monkey, actual, "expecting an element, not zero-value.")
 	assert.Equal(t, "monkey", actual.Name)
-}
-
-func TestConcurrentMap_Set(t *testing.T) {
-	cm := NewConcurrentMap[string, animal]()
-	elephant := animal{"elephant"}
-	monkey := animal{"monkey"}
-
-	prev, ok := cm.Set("elephant", elephant)
-	assert.Equal(t, animal{}, prev)
-	assert.False(t, ok)
-
-	prev, ok = cm.Set("monkey", monkey)
-	assert.Equal(t, animal{}, prev)
-	assert.False(t, ok)
-
-	assert.Equal(t, 2, cm.Count(), "map should contain exactly two elements.")
 }
 
 func TestConcurrentMap_Get(t *testing.T) {
@@ -441,6 +441,24 @@ func TestConcurrentMap_Remove(t *testing.T) {
 	actual, ok := cm.Get("monkey")
 	assert.False(t, ok)
 	assert.Equal(t, animal{}, actual)
+}
+
+func TestConcurrentMap_RemoveAll(t *testing.T) {
+	cm := NewConcurrentMap[string, string]()
+
+	cm.Set("monkey", "monkey")
+	cm.Set("elephant", "elephant")
+	cm.Set("dog", "dog")
+
+	actual := cm.RemoveAll([]string{"noone", "nobody"})
+
+	assert.False(t, actual)
+	assert.Equal(t, 3, cm.Count())
+
+	actual = cm.RemoveAll([]string{"monkey", "elephant"})
+
+	assert.True(t, actual)
+	assert.Equal(t, 1, cm.Count())
 }
 
 func TestConcurrentMap_RemoveIf(t *testing.T) {

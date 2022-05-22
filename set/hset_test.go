@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-    "github.com/jamestrandung/go-data-structure/ds"
-    "github.com/stretchr/testify/assert"
+	"github.com/jamestrandung/go-data-structure/ds"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHashSetMatchingInterface(t *testing.T) {
@@ -30,12 +30,6 @@ func TestNewHashSetWithInitialSize(t *testing.T) {
 	assert.Equal(t, 0, hs.Count())
 }
 
-func TestHashSet_AddAll(t *testing.T) {
-	hs := NewHashSet[int](1, 2, 3, 3, 2, 1)
-
-	assert.Equal(t, 3, hs.Count())
-}
-
 func TestHashSet_Add(t *testing.T) {
 	hs := NewHashSet[int]()
 
@@ -44,6 +38,12 @@ func TestHashSet_Add(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, hs.Count())
+}
+
+func TestHashSet_AddAll(t *testing.T) {
+	hs := NewHashSet[int](1, 2, 3, 3, 2, 1)
+
+	assert.Equal(t, 3, hs.Count())
 }
 
 func TestHashSet_Count(t *testing.T) {
@@ -88,16 +88,23 @@ func TestHashSet_Has(t *testing.T) {
 	assert.False(t, hs.Has(1))
 }
 
-func TestHashSet_Remove(t *testing.T) {
-	hs := NewHashSet[int]()
+func TestHashSet_Contains(t *testing.T) {
+	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
+	b := NewHashSet[int](1, 2, 3)
+	c := NewHashSet[int](3, 2, 1)
 
-	assert.False(t, hs.Remove(1))
+	assert.False(t, b.Contains(a))
+	assert.True(t, b.Contains(c))
+	assert.True(t, a.Contains(b))
+}
 
-	hs.Add(1)
+func TestHashSet_Equals(t *testing.T) {
+	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
+	b := NewHashSet[int](1, 2, 3)
+	c := NewHashSet[int](3, 2, 1)
 
-	assert.True(t, hs.Remove(1))
-
-	assert.False(t, hs.Has(1))
+	assert.False(t, a.Equals(b))
+	assert.True(t, b.Equals(c))
 }
 
 func TestHashSet_Pop(t *testing.T) {
@@ -123,6 +130,64 @@ func TestHashSet_Pop(t *testing.T) {
 	assert.Equal(t, 1, hs.Count())
 }
 
+func TestHashSet_Remove(t *testing.T) {
+	hs := NewHashSet[int]()
+
+	assert.False(t, hs.Remove(1))
+
+	hs.Add(1)
+
+	assert.True(t, hs.Remove(1))
+
+	assert.False(t, hs.Has(1))
+}
+
+func TestHashSet_RemoveAll(t *testing.T) {
+	hs := NewHashSet[int]()
+
+	assert.False(t, hs.Remove(1))
+
+	hs.AddAll([]int{1, 2, 3})
+
+	assert.True(t, hs.RemoveAll([]int{1, 2, 3}))
+
+	assert.Equal(t, 0, hs.Count())
+}
+
+func TestHashSet_RemoveIf(t *testing.T) {
+	hs := NewHashSet[int]()
+
+	assert.False(
+		t, hs.RemoveIf(
+			1, func() bool {
+				return true
+			},
+		),
+	)
+
+	hs.Add(1)
+
+	assert.False(
+		t, hs.RemoveIf(
+			1, func() bool {
+				return false
+			},
+		),
+	)
+
+	assert.Equal(t, 1, hs.Count())
+
+	assert.True(
+		t, hs.RemoveIf(
+			1, func() bool {
+				return true
+			},
+		),
+	)
+
+	assert.Equal(t, 0, hs.Count())
+}
+
 func TestHashSet_Clear(t *testing.T) {
 	hs := NewHashSet[int](1, 2, 3, 3, 2, 1)
 	another := hs
@@ -137,70 +202,6 @@ func TestHashSet_Clear(t *testing.T) {
 	assert.Equal(t, 0, hs.Count())
 	assert.Equal(t, 0, another.Count(), "other variable referenced the same set should be empty as well")
 	assert.Equal(t, 0, pointer.Count(), "other variable referenced the same set should be empty as well")
-}
-
-func TestHashSet_Difference(t *testing.T) {
-	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
-	b := NewHashSet[int](1, 2, 3)
-
-	c := a.Difference(b)
-
-	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](4, 5, 6, 99))
-}
-
-func TestHashSet_SymmetricDifference(t *testing.T) {
-	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
-	b := NewHashSet[int](1, 2, 3)
-
-	c := a.SymmetricDifference(b)
-
-	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](2, 4, 5, 6, 99))
-}
-
-func TestHashSet_Intersect(t *testing.T) {
-	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
-	b := NewHashSet[int](1, 2, 3)
-
-	c := a.Intersect(b)
-
-	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](1, 3))
-}
-
-func TestHashSet_Union(t *testing.T) {
-	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
-	b := NewHashSet[int](1, 2, 3)
-
-	c := a.Union(b)
-
-	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](1, 2, 3, 4, 5, 6, 99))
-}
-
-func TestHashSet_Equals(t *testing.T) {
-	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
-	b := NewHashSet[int](1, 2, 3)
-	c := NewHashSet[int](3, 2, 1)
-
-	assert.False(t, a.Equals(b))
-	assert.True(t, b.Equals(c))
-}
-
-func TestHashSet_IsProperSubset(t *testing.T) {
-	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
-	b := NewHashSet[int](1, 2, 3)
-	c := NewHashSet[int](3, 2, 1)
-
-	assert.False(t, b.IsProperSubset(c))
-	assert.True(t, b.IsProperSubset(a))
-}
-
-func TestHashSet_Contains(t *testing.T) {
-	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
-	b := NewHashSet[int](1, 2, 3)
-	c := NewHashSet[int](3, 2, 1)
-
-	assert.False(t, b.Contains(a))
-	assert.True(t, b.Contains(c))
-	assert.True(t, a.Contains(b))
 }
 
 func TestHashSet_Iter(t *testing.T) {
@@ -289,4 +290,49 @@ func TestHashSet_String(t *testing.T) {
 	actual := hs.String()
 
 	assert.True(t, actual == expected1 || actual == expected2)
+}
+
+func TestHashSet_Difference(t *testing.T) {
+	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
+	b := NewHashSet[int](1, 2, 3)
+
+	c := a.Difference(b)
+
+	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](4, 5, 6, 99))
+}
+
+func TestHashSet_SymmetricDifference(t *testing.T) {
+	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
+	b := NewHashSet[int](1, 2, 3)
+
+	c := a.SymmetricDifference(b)
+
+	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](2, 4, 5, 6, 99))
+}
+
+func TestHashSet_Intersect(t *testing.T) {
+	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
+	b := NewHashSet[int](1, 2, 3)
+
+	c := a.Intersect(b)
+
+	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](1, 3))
+}
+
+func TestHashSet_Union(t *testing.T) {
+	a := NewHashSet[int](1, 3, 4, 5, 6, 99)
+	b := NewHashSet[int](1, 2, 3)
+
+	c := a.Union(b)
+
+	verifySetEquals[int](t, NewHashSet[int](c...), NewHashSet[int](1, 2, 3, 4, 5, 6, 99))
+}
+
+func TestHashSet_IsProperSubset(t *testing.T) {
+	a := NewHashSet[int](1, 2, 3, 4, 5, 6)
+	b := NewHashSet[int](1, 2, 3)
+	c := NewHashSet[int](3, 2, 1)
+
+	assert.False(t, b.IsProperSubset(c))
+	assert.True(t, b.IsProperSubset(a))
 }

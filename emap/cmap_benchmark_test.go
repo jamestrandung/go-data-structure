@@ -186,6 +186,27 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	benchmarkMultiGetSetBlock(b, 256)
 }
 
+func BenchmarkConcurrentMap_RemoveAll(b *testing.B) {
+	var nums []int
+	for i := 0; i < 1000; i++ {
+		nums = append(nums, i)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+
+		cm := NewConcurrentMap[int, int]()
+		for i := 0; i < 1000; i++ {
+			cm.Set(i, i)
+		}
+
+		b.StartTimer()
+		cm.RemoveAll(nums)
+	}
+}
+
 func BenchmarkConcurrentMap_Iter(b *testing.B) {
 	scenarios := []struct {
 		desc string

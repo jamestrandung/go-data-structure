@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-    "github.com/jamestrandung/go-data-structure/ds"
-    "github.com/mitchellh/hashstructure/v2"
+	"github.com/jamestrandung/go-data-structure/ds"
+	"github.com/mitchellh/hashstructure/v2"
 )
 
 var (
@@ -159,18 +159,6 @@ func (cm ConcurrentMap[K, V]) hashAny(key K) uint64 {
 	return hash
 }
 
-// SetAll sets all k-v pairs from the given map in this map.
-func (cm ConcurrentMap[K, V]) SetAll(data map[K]V) {
-	for key, value := range data {
-		shard := cm.getShard(key)
-		shard.Lock()
-
-		shard.items[key] = value
-
-		shard.Unlock()
-	}
-}
-
 // Set sets a new k-v pair in this map, then returns the previous value associated with
 // key, and whether such value exists.
 func (cm ConcurrentMap[K, V]) Set(key K, value V) (V, bool) {
@@ -183,6 +171,18 @@ func (cm ConcurrentMap[K, V]) Set(key K, value V) (V, bool) {
 	shard.items[key] = value
 
 	return prevValue, ok
+}
+
+// SetAll sets all k-v pairs from the given map in this map.
+func (cm ConcurrentMap[K, V]) SetAll(data map[K]V) {
+	for key, value := range data {
+		shard := cm.getShard(key)
+		shard.Lock()
+
+		shard.items[key] = value
+
+		shard.Unlock()
+	}
 }
 
 // Get gets a value based on the given key.
@@ -294,6 +294,35 @@ func (cm ConcurrentMap[K, V]) Remove(key K) (V, bool) {
 	}
 
 	return val, ok
+}
+
+// RemoveAll removes all given keys from this map, then returns whether this map changed as a
+// result of the call.
+func (cm ConcurrentMap[K, V]) RemoveAll(keys []K) bool {
+	isMapChanged := false
+
+	var wg sync.WaitGroup
+	wg.Add(len(cm))
+
+	for _, shard := range cm {
+		go func(s *ConcurrentMapShard[K, V]) {
+			s.Lock()
+			defer wg.Done()
+			defer s.Unlock()
+
+			for _, key := range keys {
+				_, ok := s.items[key]
+				if ok {
+					delete(s.items, key)
+					isMapChanged = true
+				}
+			}
+		}(shard)
+	}
+
+	wg.Wait()
+
+	return isMapChanged
 }
 
 // RemoveIf removes the given key from this map based on some condition, then returns the value

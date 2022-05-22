@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-    "github.com/jamestrandung/go-data-structure/ds"
+	"github.com/jamestrandung/go-data-structure/ds"
 )
 
 type HashSet[T comparable] map[T]struct{}
@@ -26,18 +26,16 @@ func NewHashSetWithInitialSize[T comparable](initialSize int) HashSet[T] {
 	return make(map[T]struct{}, initialSize)
 }
 
-// AddAll adds all elements from the given slice to this set.
-func (hs HashSet[T]) AddAll(data []T) {
-	for _, value := range data {
-		hs[value] = struct{}{}
-	}
+// Add an element to this set.
+func (hs HashSet[T]) Add(element T) {
+	hs[element] = struct{}{}
 }
 
-// Add an element to the set, returns whether the element is new to the set.
-func (hs HashSet[T]) Add(element T) bool {
-	curSize := hs.Count()
-	hs[element] = struct{}{}
-	return hs.Count() > curSize
+// AddAll adds all elements from the given slice to this set.
+func (hs HashSet[T]) AddAll(elements []T) {
+	for _, value := range elements {
+		hs[value] = struct{}{}
+	}
 }
 
 // Count returns the size of this set.
@@ -56,17 +54,33 @@ func (hs HashSet[T]) Has(element T) bool {
 	return ok
 }
 
-// Remove removes an element from this set, returns whether such element exists.
-func (hs HashSet[T]) Remove(element T) bool {
-	if _, ok := hs[element]; ok {
-		delete(hs, element)
-		return true
-	}
+// Contains returns whether all elements in `other` are in this set.
+func (hs HashSet[T]) Contains(other ds.Collection[T]) bool {
+	isSuperset := true
+	other.ForEach(
+		func(element T) bool {
+			if !hs.Has(element) {
+				isSuperset = false
+				return true
+			}
 
-	return false
+			return false
+		},
+	)
+
+	return isSuperset
 }
 
-// Pop removes and returns an arbitrary element from this set.
+// Equals returns whether this and `other` sets have the same size and contain the same elements.
+func (hs HashSet[T]) Equals(other ds.Collection[T]) bool {
+	if hs.Count() != other.Count() {
+		return false
+	}
+
+	return hs.Contains(other)
+}
+
+// Pop removes and returns an element from this set.
 func (hs HashSet[T]) Pop() (v T, ok bool) {
 	for element := range hs {
 		delete(hs, element)
@@ -76,11 +90,110 @@ func (hs HashSet[T]) Pop() (v T, ok bool) {
 	return
 }
 
+// Remove removes an element from this set, returns whether this set changed
+// as a result of the call.
+func (hs HashSet[T]) Remove(element T) bool {
+	if _, ok := hs[element]; ok {
+		delete(hs, element)
+		return true
+	}
+
+	return false
+}
+
+// RemoveAll removes the given elements from this set, returns whether this set
+// changed as a result of the call.
+func (hs HashSet[T]) RemoveAll(elements []T) bool {
+	isSetChanged := false
+
+	for _, element := range elements {
+		if _, ok := hs[element]; ok {
+			delete(hs, element)
+			isSetChanged = true
+		}
+	}
+
+	return isSetChanged
+}
+
+// RemoveIf removes the given element from this set based on some condition, then returns
+// true if the element was removed. If the given element doesn't exist in this set or the
+// element was not removed because of the condition func, false will be returned.
+func (hs HashSet[T]) RemoveIf(element T, conditionFn func() bool) bool {
+	if _, ok := hs[element]; ok && conditionFn() {
+		delete(hs, element)
+		return true
+	}
+
+	return false
+}
+
 // Clear removes all elements from this set.
 func (hs HashSet[T]) Clear() {
 	for element := range hs {
 		delete(hs, element)
 	}
+}
+
+// Iter returns a channel which could be used in a for range loop. The capacity of the returned
+// channel is the same as the size of the set at the time Iter is called.
+func (hs HashSet[T]) Iter() <-chan T {
+	out := make(chan T, hs.Count())
+
+	go func() {
+		defer close(out)
+
+		for element := range hs {
+			out <- element
+		}
+	}()
+
+	return out
+}
+
+// Items returns all elements of this set as a slice.
+func (hs HashSet[T]) Items() []T {
+	result := make([]T, 0, hs.Count())
+
+	for element := range hs {
+		result = append(result, element)
+	}
+
+	return result
+}
+
+// ForEach executes the given doEachFn on every element in this set. If `doEachFn` returns true,
+// stop execution immediately.
+func (hs HashSet[T]) ForEach(doEachFn func(element T) bool) {
+	for element := range hs {
+		if doEachFn(element) {
+			break
+		}
+	}
+}
+
+// MarshalJSON returns the JSON bytes of this set.
+func (hs HashSet[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(hs.Items())
+}
+
+// UnmarshalJSON consumes a slice of JSON bytes to populate this set.
+func (hs HashSet[T]) UnmarshalJSON(b []byte) error {
+	var tmp []T
+
+	err := json.Unmarshal(b, &tmp)
+	if err != nil {
+		return err
+	}
+
+	hs.AddAll(tmp)
+
+	return nil
+}
+
+// String returns a string representation of the current state of the set.
+func (hs HashSet[T]) String() string {
+	return fmt.Sprintf("%v", hs.Items())
 }
 
 // Difference returns all elements of this set that are not in `other`.
@@ -168,15 +281,6 @@ func (hs HashSet[T]) Union(other ds.Set[T]) []T {
 	return result.Items()
 }
 
-// Equals returns whether this and `other` sets have the same size and contain the same elements.
-func (hs HashSet[T]) Equals(other ds.Set[T]) bool {
-	if hs.Count() != other.Count() {
-		return false
-	}
-
-	return hs.Contains(other)
-}
-
 // IsProperSubset returns whether all elements in this set are in `other` but they are not equal.
 func (hs HashSet[T]) IsProperSubset(other ds.Set[T]) bool {
 	if hs.Count() >= other.Count() {
@@ -184,82 +288,4 @@ func (hs HashSet[T]) IsProperSubset(other ds.Set[T]) bool {
 	}
 
 	return other.Contains(hs)
-}
-
-// Contains returns whether all elements in `other` are in this set.
-func (hs HashSet[T]) Contains(other ds.Set[T]) bool {
-	isSuperset := true
-	other.ForEach(
-		func(element T) bool {
-			if !hs.Has(element) {
-				isSuperset = false
-				return true
-			}
-
-			return false
-		},
-	)
-
-	return isSuperset
-}
-
-// Iter returns a channel which could be used in a for range loop. The capacity of the returned
-// channel is the same as the size of the set at the time Iter is called.
-func (hs HashSet[T]) Iter() <-chan T {
-	out := make(chan T, hs.Count())
-
-	go func() {
-		defer close(out)
-
-		for element := range hs {
-			out <- element
-		}
-	}()
-
-	return out
-}
-
-// Items returns all elements of this set as a slice.
-func (hs HashSet[T]) Items() []T {
-	result := make([]T, 0, hs.Count())
-
-	for element := range hs {
-		result = append(result, element)
-	}
-
-	return result
-}
-
-// ForEach executes the given doEachFn on every element in this set. If `doEachFn` returns true,
-// stop execution immediately.
-func (hs HashSet[T]) ForEach(doEachFn func(element T) bool) {
-	for element := range hs {
-		if doEachFn(element) {
-			break
-		}
-	}
-}
-
-// MarshalJSON returns the JSON bytes of this set.
-func (hs HashSet[T]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(hs.Items())
-}
-
-// UnmarshalJSON consumes a slice of JSON bytes to populate this set.
-func (hs HashSet[T]) UnmarshalJSON(b []byte) error {
-	var tmp []T
-
-	err := json.Unmarshal(b, &tmp)
-	if err != nil {
-		return err
-	}
-
-	hs.AddAll(tmp)
-
-	return nil
-}
-
-// String returns a string representation of the current state of the set.
-func (hs HashSet[T]) String() string {
-	return fmt.Sprintf("%v", hs.Items())
 }

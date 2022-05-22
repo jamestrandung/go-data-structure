@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-    "github.com/jamestrandung/go-data-structure/ds"
-    "github.com/stretchr/testify/assert"
+	"github.com/jamestrandung/go-data-structure/ds"
+	"github.com/stretchr/testify/assert"
 )
 
 func verifySetEquals[T comparable](t *testing.T, a, b ds.Set[T]) {
