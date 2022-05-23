@@ -79,7 +79,7 @@ func (cs ConcurrentSet[T]) Contains(other ds.Collection[T]) bool {
 	return isSuperset
 }
 
-// Equals returns whether this and `other` sets have the same size and contain the same elements.
+// Equals returns whether this and `other` collections have the same size and contain the same elements.
 func (cs ConcurrentSet[T]) Equals(other ds.Collection[T]) bool {
 	if cs.Count() != other.Count() {
 		return false

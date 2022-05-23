@@ -14,7 +14,7 @@ type Collection[T comparable] interface {
 	Has(element T) bool
 	// Contains returns whether all elements in `other` are in this collection.
 	Contains(other Collection[T]) bool
-	// Equals returns whether this and `other` sets have the same size and contain the same elements.
+	// Equals returns whether this and `other` collections have the same size and contain the same elements.
 	Equals(other Collection[T]) bool
 	// Pop removes and returns an element from this collection.
 	Pop() (T, bool)
