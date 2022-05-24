@@ -67,11 +67,11 @@ type Map[K comparable, V any] interface {
 
 The basic `map` type in Go does not support concurrent reads and writes. `emap` provides a high
 performance solution by utilizing shards to minimize the time required to acquire a lock to read
-or write. It is suitable for cases where many Go routines read & write over the same set of keys.
+or write. It is suitable for cases where many goroutines read & write over the same set of keys.
 
 Do note that since Go 1.9, there's a built-in `sync.Map` that is optimized for 2 common use cases:
 (1) when the entry for a given key is only ever written once but read many times, as in caches that
-only grow, or (2) when multiple Go routines read, write, and overwrite entries for disjoint sets of
+only grow, or (2) when multiple goroutines read, write, and overwrite entries for disjoint sets of
 keys. In these cases, using `sync.Map` may significantly reduce lock content compared to `emap`.
 
 Read more: https://pkg.go.dev/sync#Map

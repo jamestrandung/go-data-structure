@@ -16,11 +16,11 @@ var (
 // Hasher can be implemented by the type to be used as keys in case clients want to provide
 // their own hashing algo. Note that this hash does NOT control which bucket will hold a key
 // in the actual map in each shard. Instead, it is used to distribute keys into the underlying
-// shards which can be locked/unlocked independently by many Go routines.
+// shards which can be locked/unlocked independently by many goroutines.
 //
 // To guarantee good performance for ConcurrentMap, clients must make sure their hashing
 // algo can evenly distribute keys across shards. Otherwise, a hot shard may become a
-// bottleneck when many Go routines try to lock it at the same time.
+// bottleneck when many goroutines try to lock it at the same time.
 //
 // Note: we prioritize availability over correctness. If clients' hashing algo panics, the
 // library will automatically recover and return 0, meaning all panicked keys will go into
@@ -368,7 +368,7 @@ func (cm ConcurrentMap[K, V]) Clear() {
 
 // takeSnapshot returns an array of channels that contains all k-v pairs in each shard, which is
 // likely a snapshot of this map. It returns once the size of each buffered channel is determined,
-// before all the channels are populated using Go routines.
+// before all the channels are populated using goroutines.
 func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan ds.Tuple[K, V] {
 	// When this map is not initialized
 	if len(cm) == 0 {
@@ -388,7 +388,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan ds.Tuple[K, V] {
 			defer s.RUnlock()
 
 			// A buffered channel that is big enough to hold all k-v pairs in this
-			// shard will prevent this Go routine from being blocked indefinitely
+			// shard will prevent this goroutine from being blocked indefinitely
 			// in case reader crashes
 			channel := make(chan ds.Tuple[K, V], len(s.items))
 			defer close(channel)
