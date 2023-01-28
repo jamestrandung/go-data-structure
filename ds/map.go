@@ -1,7 +1,7 @@
 package ds
 
 // Tuple represents a k-v pair.
-type Tuple[K comparable, V any] struct {
+type Tuple[K any, V any] struct {
 	Key K
 	Val V
 }
