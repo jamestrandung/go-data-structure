@@ -6,14 +6,14 @@ import (
     "testing"
 )
 
-//func BenchmarkGetShard(b *testing.B) {
-//	cm := NewConcurrentMap[string, string]()
-//	b.ResetTimer()
-//
-//	for i := 0; i < b.N; i++ {
-//		cm.getShard(strconv.Itoa(i))
-//	}
-//}
+func BenchmarkGetShard(b *testing.B) {
+    cm := NewConcurrentMap[string, string]()
+    b.ResetTimer()
+
+    for i := 0; i < b.N; i++ {
+        cm.getShard(strconv.Itoa(i))
+    }
+}
 
 func BenchmarkConcurrentMap_SetAll(b *testing.B) {
     data := make(map[int]int)
