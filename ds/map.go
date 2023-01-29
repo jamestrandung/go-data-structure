@@ -47,10 +47,6 @@ type Map[K comparable, V any] interface {
 	// ForEach executes the given doEachFn on every element in this map. If `doEachFn` returns true,
 	// stop execution immediately.
 	ForEach(doEachFn func(key K, val V) bool)
-	// MarshalJSON returns the JSON bytes of this map.
-	MarshalJSON() ([]byte, error)
-	// UnmarshalJSON consumes a slice of JSON bytes to populate this map.
-	UnmarshalJSON(b []byte) error
 	// String returns a string representation of the current state of this map.
 	String() string
 }

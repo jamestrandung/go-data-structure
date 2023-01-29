@@ -3,8 +3,9 @@ package emap
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jamestrandung/go-data-structure/ds"
 	"sync"
+
+	"github.com/jamestrandung/go-data-structure/ds"
 )
 
 var (
@@ -14,9 +15,6 @@ var (
 type BasicKeyType interface {
 	string | int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64
 }
-
-// UnlockFn unlocks a shard
-type UnlockFn func()
 
 // ConcurrentMap is a thread safe map for K -> V. To avoid lock bottlenecks this map is divided
 // into to several ConcurrentMapShard.
@@ -31,7 +29,34 @@ type UnlockFn func()
 // Alternatively, clients can implement the Hasher core to provide their own hashing algo.
 // This is preferred for optimizing performance since clients can choose fields to hash based
 // on the actual type of keys without relying on heavy reflections inside hashstructure.Hash.
-type ConcurrentMap[K comparable, V any] ConcurrentMapUnsafeKey[V]
+type ConcurrentMap[K comparable, V any] []*ConcurrentMapShard[K, V]
+
+// ConcurrentMapShard is 1 shard in a ConcurrentMap
+type ConcurrentMapShard[K comparable, V any] struct {
+	sync.RWMutex
+	items map[K]V
+}
+
+// UnlockFn unlocks a shard
+type UnlockFn func()
+
+// GetItemsToRead returns the items in this shard and an UnlockFn after getting RLock
+func (s *ConcurrentMapShard[K, V]) GetItemsToRead() (map[K]V, UnlockFn) {
+	s.RLock()
+
+	return s.items, func() {
+		s.RUnlock()
+	}
+}
+
+// GetItemsToWrite returns the items in this shard and an UnlockFn after getting Lock
+func (s *ConcurrentMapShard[K, V]) GetItemsToWrite() (map[K]V, UnlockFn) {
+	s.Lock()
+
+	return s.items, func() {
+		s.Unlock()
+	}
+}
 
 // NewConcurrentMap returns a new instance of ConcurrentMap.
 func NewConcurrentMap[K comparable, V any]() ConcurrentMap[K, V] {
@@ -40,24 +65,54 @@ func NewConcurrentMap[K comparable, V any]() ConcurrentMap[K, V] {
 
 // NewConcurrentMapWithConcurrencyLevel returns a new instance of ConcurrentMap with the given amount of shards.
 func NewConcurrentMapWithConcurrencyLevel[K comparable, V any](concurrencyLevel int) ConcurrentMap[K, V] {
-	cm := NewNewConcurrentMapUnsafeKeyWithConcurrencyLevel[V](concurrencyLevel)
-	return ConcurrentMap[K, V](cm)
+	m := make([]*ConcurrentMapShard[K, V], concurrencyLevel)
+	for i := 0; i < concurrencyLevel; i++ {
+		m[i] = &ConcurrentMapShard[K, V]{
+			items: make(map[K]V),
+		}
+	}
+
+	return m
 }
 
-func (cm ConcurrentMap[K, V]) cast() ConcurrentMapUnsafeKey[V] {
-	return (ConcurrentMapUnsafeKey[V])(cm)
+func (cm ConcurrentMap[K, V]) getShard(key K) *ConcurrentMapShard[K, V] {
+	tmp := any(key)
+
+	switch castedKey := tmp.(type) {
+	case string:
+		hash := HashString(castedKey)
+		return cm[hash%uint32(len(cm))]
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		hash := HashString(fmt.Sprintf("%v", castedKey))
+		return cm[hash%uint32(len(cm))]
+	default:
+	}
+
+	if h, ok := tmp.(Hasher); ok {
+		return cm[hashHasher(h)%uint64(len(cm))]
+	}
+
+	return cm[hashAny(key)%uint64(len(cm))]
 }
 
 // Set sets a new k-v pair in this map, then returns the previous value associated with
 // key, and whether such value exists.
 func (cm ConcurrentMap[K, V]) Set(key K, value V) (V, bool) {
-	return cm.cast().Set(key, value)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	prevValue, ok := shard.items[key]
+
+	shard.items[key] = value
+
+	return prevValue, ok
 }
 
 // SetAll sets all k-v pairs from the given map in this map.
 func (cm ConcurrentMap[K, V]) SetAll(data map[K]V) {
 	for key, value := range data {
-		shard := cm.cast().getShard(key)
+		shard := cm.getShard(key)
 		shard.Lock()
 
 		shard.items[key] = value
@@ -68,13 +123,28 @@ func (cm ConcurrentMap[K, V]) SetAll(data map[K]V) {
 
 // Get gets a value based on the given key.
 func (cm ConcurrentMap[K, V]) Get(key K) (V, bool) {
-	return cm.cast().Get(key)
+	shard := cm.getShard(key)
+	shard.RLock()
+	defer shard.RUnlock()
+
+	val, ok := shard.items[key]
+	return val, ok
 }
 
 // SetIfAbsent sets a new k-v pair in this map if it doesn't contain this key, then returns
 // whether such k-v pair was absent.
 func (cm ConcurrentMap[K, V]) SetIfAbsent(key K, value V) bool {
-	return cm.cast().SetIfAbsent(key, value)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	if _, found := shard.items[key]; found {
+		return false
+	}
+
+	shard.items[key] = value
+
+	return true
 }
 
 // GetAndSetIf gets a value based on the given key and sets a new value based on some condition,
@@ -86,7 +156,17 @@ func (cm ConcurrentMap[K, V]) GetAndSetIf(
 	key K,
 	conditionFn func(currentVal V, found bool) (newVal V, shouldSet bool),
 ) (currentVal V, found bool, newVal V, shouldSet bool) {
-	return cm.cast().GetAndSetIf(key, conditionFn)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	currentVal, found = shard.items[key]
+	newVal, shouldSet = conditionFn(currentVal, found)
+	if shouldSet {
+		shard.items[key] = newVal
+	}
+
+	return
 }
 
 // GetElseCreate return the value associated with the given key and true. If the key doesn't
@@ -96,12 +176,31 @@ func (cm ConcurrentMap[K, V]) GetAndSetIf(
 // Note: newValueFn is called while lock is held. Hence, it must NOT access this map as it may
 // lead to deadlock since sync.RWLock is not reentrant.
 func (cm ConcurrentMap[K, V]) GetElseCreate(key K, newValueFn func() V) (V, bool) {
-	return cm.cast().GetElseCreate(key, newValueFn)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	if val, found := shard.items[key]; found {
+		return val, true
+	}
+
+	newValue := newValueFn()
+	shard.items[key] = newValue
+	return newValue, false
 }
 
 // Count returns size of this map.
 func (cm ConcurrentMap[K, V]) Count() int {
-	return cm.cast().Count()
+	count := 0
+	for _, shard := range cm {
+		shard.RLock()
+
+		count += len(shard.items)
+
+		shard.RUnlock()
+	}
+
+	return count
 }
 
 // IsEmpty returns whether this map is empty
@@ -111,12 +210,26 @@ func (cm ConcurrentMap[K, V]) IsEmpty() bool {
 
 // Has returns whether given key is in this map.
 func (cm ConcurrentMap[K, V]) Has(key K) bool {
-	return cm.cast().Has(key)
+	shard := cm.getShard(key)
+	shard.RLock()
+	defer shard.RUnlock()
+
+	_, ok := shard.items[key]
+	return ok
 }
 
 // Remove pops a K-V pair from this map, then returns it.
 func (cm ConcurrentMap[K, V]) Remove(key K) (V, bool) {
-	return cm.cast().Remove(key)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	val, ok := shard.items[key]
+	if ok {
+		delete(shard.items, key)
+	}
+
+	return val, ok
 }
 
 // RemoveAll removes all given keys from this map, then returns whether this map changed as a
@@ -127,8 +240,8 @@ func (cm ConcurrentMap[K, V]) RemoveAll(keys []K) bool {
 	var wg sync.WaitGroup
 	wg.Add(len(cm))
 
-	for _, shard := range cm.cast() {
-		go func(s *ConcurrentMapShardUnsafeKey[V]) {
+	for _, shard := range cm {
+		go func(s *ConcurrentMapShard[K, V]) {
 			s.Lock()
 			defer wg.Done()
 			defer s.Unlock()
@@ -155,12 +268,38 @@ func (cm ConcurrentMap[K, V]) RemoveAll(keys []K) bool {
 // Note: Condition func is called while lock is held. Hence, it must NOT access this map as it
 // may lead to deadlock since sync.RWLock is not reentrant.
 func (cm ConcurrentMap[K, V]) RemoveIf(key K, conditionFn func(currentVal V) bool) (V, bool) {
-	return cm.cast().RemoveIf(key, conditionFn)
+	shard := cm.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+
+	val, ok := shard.items[key]
+	if ok && conditionFn(val) {
+		delete(shard.items, key)
+		return val, true
+	}
+
+	var tmp V
+	return tmp, false
 }
 
 // Clear removes all k-v pairs from this map.
 func (cm ConcurrentMap[K, V]) Clear() {
-	cm.cast().Clear()
+	var wg sync.WaitGroup
+	wg.Add(len(cm))
+
+	for _, shard := range cm {
+		go func(s *ConcurrentMapShard[K, V]) {
+			s.Lock()
+			defer wg.Done()
+			defer s.Unlock()
+
+			for key := range s.items {
+				delete(s.items, key)
+			}
+		}(shard)
+	}
+
+	wg.Wait()
 }
 
 // takeSnapshot returns an array of channels that contains all k-v pairs in each shard, which is
@@ -180,7 +319,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan ds.Tuple[K, V] {
 	result := make([]<-chan ds.Tuple[K, V], shardCount)
 
 	for idx, shard := range cm {
-		go func(i int, s *ConcurrentMapShardUnsafeKey[V]) {
+		go func(i int, s *ConcurrentMapShard[K, V]) {
 			s.RLock()
 			defer s.RUnlock()
 
@@ -196,7 +335,7 @@ func (cm ConcurrentMap[K, V]) takeSnapshot() []<-chan ds.Tuple[K, V] {
 			wg.Done()
 
 			for key, val := range s.items {
-				channel <- ds.Tuple[K, V]{key.(K), val}
+				channel <- ds.Tuple[K, V]{key, val}
 			}
 		}(idx, shard)
 	}
@@ -251,7 +390,7 @@ func (cm ConcurrentMap[K, V]) Items() []ds.Tuple[K, V] {
 		shard.RLock()
 
 		for key, val := range shard.items {
-			result = append(result, ds.Tuple[K, V]{key.(K), val})
+			result = append(result, ds.Tuple[K, V]{key, val})
 		}
 
 		shard.RUnlock()
@@ -275,7 +414,7 @@ func (cm ConcurrentMap[K, V]) ForEach(doEachFn func(key K, val V) bool) {
 			defer shard.RUnlock()
 
 			for key, val := range shard.items {
-				if doEachFn(key.(K), val) {
+				if doEachFn(key, val) {
 					return true
 				}
 			}
@@ -297,7 +436,7 @@ func (cm ConcurrentMap[K, V]) AsMap() map[K]V {
 		shard.RLock()
 
 		for key, val := range shard.items {
-			result[key.(K)] = val
+			result[key] = val
 		}
 
 		shard.RUnlock()
