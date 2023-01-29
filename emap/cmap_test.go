@@ -2,13 +2,13 @@ package emap
 
 import (
 	"encoding/json"
+	"github.com/mitchellh/hashstructure/v2"
 	"sort"
 	"strconv"
 	"sync"
 	"testing"
 
 	"github.com/jamestrandung/go-data-structure/ds"
-	"github.com/mitchellh/hashstructure/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -765,7 +765,7 @@ func TestConcurrentMap_String(t *testing.T) {
 	assert.Equal(t, expected, cm.String())
 }
 
-func TestConcurrent(t *testing.T) {
+func TestConcurrentMap_Concurrency(t *testing.T) {
 	cm := NewConcurrentMap[string, int]()
 
 	ch := make(chan int)
